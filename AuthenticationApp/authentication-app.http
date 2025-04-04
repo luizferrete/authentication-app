@@ -1,0 +1,22 @@
+@authentication_app_HostAddress = https://localhost:44383
+
+POST {{authentication_app_HostAddress}}/user/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "testuser",
+  "password": "passw123",
+  "email": "l.a.ferrete@gmail.com"
+}
+
+###
+
+POST {{authentication_app_HostAddress}}/user/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "test",
+  "password": "passw123"
+}
