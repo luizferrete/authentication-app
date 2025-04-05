@@ -5,14 +5,14 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "testuser",
+  "username": "test",
   "password": "passw123",
   "email": "l.a.ferrete@gmail.com"
 }
 
 ###
 
-POST {{authentication_app_HostAddress}}/user/login
+POST {{authentication_app_HostAddress}}/login/
 Content-Type: application/json
 Accept: application/json
 

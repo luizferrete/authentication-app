@@ -24,16 +24,17 @@ namespace AuthenticationApp.DataAccess.Repositories
             await _users.InsertOneAsync(user);
         }
 
-        public async Task<UserDTO> GetUserByCredentials(string username, string password)
+        public async Task<LoginUserDTO> GetUserByCredentials(string username)
         {
-            var user = await _users.Find(x => x.Username == username && x.Password == password).FirstOrDefaultAsync();
+            var user = await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
             if (user == null)
             {
                 return null;
             }
-            return new UserDTO
+            return new LoginUserDTO
             {
                 Username = user.Username,
+                Password = user.Password,
                 Email = user.Email,
                 JwtToken = user.JwtToken,
                 RefreshToken = user.RefreshToken

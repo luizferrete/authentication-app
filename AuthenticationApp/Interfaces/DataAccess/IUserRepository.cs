@@ -6,6 +6,6 @@ namespace AuthenticationApp.Interfaces.DataAccess
     {
         Task CreateUser(CreateUserDTO userDTO);
         //Task<bool> UserExists(string username);
-        Task<UserDTO> GetUserByCredentials(string username, string password);
+        Task<LoginUserDTO> GetUserByCredentials(string username);
     }
 }

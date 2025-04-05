@@ -1,6 +1,7 @@
 ﻿using AuthenticationApp.Domain.DTOs;
 using AuthenticationApp.Interfaces.Business;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Authentication;
 
 namespace AuthenticationApp.Endpoints
 {
@@ -14,19 +15,6 @@ namespace AuthenticationApp.Endpoints
             })
             .WithName("CreateUser")
             .WithDescription("Creates a new user.")
-            .WithOpenApi();
-
-            routes.MapPost("/user/login", async ([FromBody] LoginDTO login, IUserService userService) =>
-            {
-                var user = await userService.GetUserByCredentials(login.Username, login.Password);
-                if (user == null)
-                {
-                    return Results.NotFound("User not found");
-                }
-                return Results.Ok(user);
-            })
-            .WithName("LoginUser")
-            .WithDescription("Logs in a user.")
             .WithOpenApi();
 
             return routes;

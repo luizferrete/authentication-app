@@ -30,6 +30,7 @@ builder.Services.AddSingleton(sp =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ILoginService, LoginService>();
 
 var app = builder.Build();
 
@@ -43,7 +44,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.MapWeatherForecastEndpoints();
 app.MapUserEndpoints();
-
+app.MapLoginEndpoints();
 
 app.Run();
 
