@@ -24,20 +24,77 @@ namespace AuthenticationApp.DataAccess.Repositories
             await _users.InsertOneAsync(user);
         }
 
-        public async Task<UserDTO> GetUserByCredentials(string username, string password)
+        public async Task<LoginUserDTO> GetUserByCredentials(string username)
         {
-            var user = await _users.Find(x => x.Username == username && x.Password == password).FirstOrDefaultAsync();
+            var user = await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
             if (user == null)
             {
                 return null;
             }
-            return new UserDTO
+            return new LoginUserDTO
             {
                 Username = user.Username,
+                Password = user.Password,
                 Email = user.Email,
-                JwtToken = user.JwtToken,
                 RefreshToken = user.RefreshToken
             };
+        }
+
+        public async Task<UserDTO> GetUserByRefreshToken(string refreshToken)
+        {
+            var user = await _users.Find(x => x.RefreshToken == refreshToken).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new UserDTO
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                RefreshToken = user.RefreshToken
+            };
+        }
+
+        public async Task<UserDTO> GetUserByUsername(string username)
+        {
+            var user = await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return null;
+            }
+
+            return new UserDTO
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                RefreshToken = user.RefreshToken
+            };
+        }
+
+        public async Task UpdateUser(UserDTO userDTO)
+        {
+            var user = await _users.Find(x => x.Id == userDTO.Id).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+            user.Username = userDTO.Username;
+            user.Email = userDTO.Email;
+            user.RefreshToken = userDTO.RefreshToken;
+            var filter = Builders<User>.Filter.Eq(u => u.Id, userDTO.Id);
+            var update = Builders<User>.Update
+                .Set(x => x.Username, user.Username)
+                .Set(x => x.Email, user.Email)
+                .Set(x => x.RefreshToken, user.RefreshToken);
+            var result = await _users.UpdateOneAsync(filter, update);
+
+            if (result.MatchedCount == 0)
+            {
+                throw new Exception("User not found");
+            }
         }
     }
 }

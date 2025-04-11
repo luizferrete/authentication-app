@@ -6,6 +6,8 @@ namespace AuthenticationApp.Interfaces.Business
     {
         Task CreateUser(CreateUserDTO user);
         Task<UserDTO> GetUserByCredentials(string username, string password);
+        Task UpdateRefreshToken(string username, string newToken);
+        Task<UserDTO> GetUserByRefreshToken(string refreshToken);
         //Task<UserDTO> GetUserById(int id);
         //Task<IEnumerable<UserDTO>> GetAllUsers();
         //Task UpdateUser(int id, UpdateUserDTO user);
