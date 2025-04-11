@@ -11,6 +11,12 @@ namespace AuthenticationApp.Business.Services
         
         public async Task CreateUser(CreateUserDTO userDTO)
         {
+            var user = await userRepository.GetUserByCredentials(userDTO.Username);
+            if(user is not null)
+            {
+                throw new InvalidCredentialException("Usuário já existe.");
+            }
+
             userDTO.Password = HashPassord(userDTO.Password);
 
             await userRepository.CreateUser(userDTO);
@@ -34,6 +40,30 @@ namespace AuthenticationApp.Business.Services
             };
 
             return loggedUser;
+        }
+
+        public async Task UpdateRefreshToken(string username, string newToken)
+        {
+            var user = await userRepository.GetUserByUsername(username);
+
+            if (user is null)
+            {
+                throw new InvalidCredentialException("Usuário não encontrado.");
+            }
+
+            user.RefreshToken = newToken;
+
+            await userRepository.UpdateUser(user);
+        }
+
+        public async Task<UserDTO> GetUserByRefreshToken(string refreshToken)
+        {
+            var user = await userRepository.GetUserByRefreshToken(refreshToken);
+            if (user is null)
+            {
+                throw new InvalidCredentialException("Refresh token inválido.");
+            }
+            return user;
         }
 
         private static string HashPassord(string password) =>

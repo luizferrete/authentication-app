@@ -22,6 +22,7 @@
                 return forecast;
             })
             .WithName("GetWeatherForecast")
+            .RequireAuthorization()
             .WithOpenApi();
 
             return routes;

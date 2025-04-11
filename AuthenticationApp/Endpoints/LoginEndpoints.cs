@@ -1,4 +1,5 @@
 ﻿using AuthenticationApp.Domain.DTOs;
+using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Authentication;
@@ -13,9 +14,9 @@ namespace AuthenticationApp.Endpoints
             {
                 try
                 {
-                    var user = await loginService.Login(login);
+                    var response = await loginService.Login(login);
 
-                    return Results.Ok(user);
+                    return Results.Ok(response);
                 }
                 catch (InvalidCredentialException)
                 {
@@ -26,6 +27,43 @@ namespace AuthenticationApp.Endpoints
             .WithName("LoginUser")
             .WithDescription("Logs in a user.")
             .WithOpenApi();
+
+            routes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, ILoginService loginService) =>
+            {
+                try
+                {
+                    var response = await loginService.RefreshToken(request);
+
+                    return Results.Ok(response);
+                }
+                catch (InvalidCredentialException)
+                {
+                    return Results.Unauthorized();
+                }
+
+            })
+            .WithName("Refresh")
+            .WithDescription("Refresh token login.")
+            .WithOpenApi();
+
+            routes.MapPost("/logout", async (ILoginService loginService) =>
+            {
+                try
+                {
+                    await loginService.Logout();
+
+                    return Results.Ok();
+                }
+                catch (Exception e)
+                {
+                    return Results.BadRequest(e);
+                }
+
+            })
+           .RequireAuthorization()
+           .WithName("Logout")
+           .WithDescription("Logs out a user.")
+           .WithOpenApi();
 
             return routes;
         }

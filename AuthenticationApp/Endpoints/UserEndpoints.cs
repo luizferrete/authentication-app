@@ -11,7 +11,14 @@ namespace AuthenticationApp.Endpoints
         {
             routes.MapPost("/user", async ([FromBody] CreateUserDTO user, IUserService userService) =>
             {
-                await userService.CreateUser(user);
+                try
+                {
+                    await userService.CreateUser(user);
+                    return Results.Created();
+                } catch(Exception e)
+                {
+                    return Results.BadRequest(e.Message);
+                }
             })
             .WithName("CreateUser")
             .WithDescription("Creates a new user.")
