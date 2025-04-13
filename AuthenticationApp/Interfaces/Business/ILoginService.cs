@@ -9,6 +9,6 @@ namespace AuthenticationApp.Interfaces.Business
         public Task<LoginResponse> Login(LoginDTO userDTO);
         public Task<LoginResponse> RefreshToken(RefreshTokenRequest refreshToken);
 
-        public Task Logout();
+        public Task<bool> Logout();
     }
 }
