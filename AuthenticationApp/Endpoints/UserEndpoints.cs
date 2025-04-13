@@ -1,4 +1,5 @@
 ﻿using AuthenticationApp.Domain.DTOs;
+using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Authentication;
@@ -22,6 +23,27 @@ namespace AuthenticationApp.Endpoints
             })
             .WithName("CreateUser")
             .WithDescription("Creates a new user.")
+            .WithOpenApi();
+
+            routes.MapPost("/user/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService) =>
+            {
+                try
+                {
+                    await userService.ChangePassword(changePassword);
+                    return Results.Ok();
+                }
+                catch (InvalidOperationException e)
+                {
+                    return Results.BadRequest(e.Message);
+                }
+                catch (InvalidCredentialException)
+                {
+                    return Results.Unauthorized();
+                }
+            })
+            .RequireAuthorization()
+            .WithName("ChangePassword")
+            .WithDescription("Changes the password of a user.")
             .WithOpenApi();
 
             return routes;

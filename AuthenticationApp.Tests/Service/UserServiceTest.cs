@@ -1,12 +1,16 @@
 ﻿using AuthenticationApp.Business.Services;
 using AuthenticationApp.Domain.DTOs;
 using AuthenticationApp.Domain.Models;
+using AuthenticationApp.Domain.Request;
+using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Authentication;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,12 +19,16 @@ namespace AuthenticationApp.Tests.Service
     public class UserServiceTest
     {
         private readonly Mock<IUserRepository> _userRepositoryMock;
+        private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+        private readonly Mock<HttpContext> _httpContextMock;
         private readonly UserService _userService;
 
         public UserServiceTest() 
         {
             _userRepositoryMock = new Mock<IUserRepository>();
-            _userService = new UserService(_userRepositoryMock.Object);
+            _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            _httpContextMock = new Mock<HttpContext>();
+            _userService = new UserService(_userRepositoryMock.Object, _httpContextAccessorMock.Object);
         }
 
         [Fact]
@@ -143,6 +151,123 @@ namespace AuthenticationApp.Tests.Service
             var result = await _userService.GetUserByRefreshToken("validToken");
 
             Assert.Equal(user, result);
+        }
+
+        [Fact]
+        public async Task ChangePassord_WhenUserNotInClaims_ShouldThrowInvalidCredentialException()
+        {
+            //arrange
+            var claims = new List<Claim>();
+            var identity = new ClaimsIdentity(claims);
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
+            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
+            var changePasswordRequest = new ChangePasswordRequest
+            {
+                OldPassword = "oldpassword",
+                NewPassword = "newpassword"
+            };
+            //act and assert
+            var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.ChangePassword(changePasswordRequest));
+            Assert.Equal("Usuário não encontrado.", message.Message);
+        }
+
+        [Fact]
+        public async Task ChangePassord_WhenUserNotInDb_ShouldThrowInvalidCredentialException()
+        {
+            //arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "testuser")
+            };
+            var identity = new ClaimsIdentity(claims);
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
+            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
+            var changePasswordRequest = new ChangePasswordRequest
+            {
+                OldPassword = "oldpassword",
+                NewPassword = "newpassword"
+            };
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+                .ReturnsAsync((LoginUserDTO)null);
+            //act and assert
+            var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.ChangePassword(changePasswordRequest));
+            Assert.Equal("Usuário não encontrado.", message.Message);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenSamePassword_ShouldThrowInvalidOperationException()
+        {
+            //arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "testuser")
+            };
+            var identity = new ClaimsIdentity(claims);
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
+            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
+            var changePasswordRequest = new ChangePasswordRequest
+            {
+                OldPassword = "oldpassword",
+                NewPassword = "oldpassword"
+            };
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+
+            //act and assert
+            var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.ChangePassword(changePasswordRequest));
+            Assert.Equal("A nova senha não pode ser igual à senha atual.", message.Message);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenOldPasswordIncorrect_ShouldThrowInvalidOperationException()
+        {
+            //arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "testuser")
+            };
+            var identity = new ClaimsIdentity(claims);
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
+            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
+            var changePasswordRequest = new ChangePasswordRequest
+            {
+                OldPassword = "wrongpassword",
+                NewPassword = "newpassword"
+            };
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+            //act and assert
+            var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.ChangePassword(changePasswordRequest));
+            Assert.Equal("A senha atual não coincide com a informada.", message.Message);
+        }
+
+        [Fact]
+        public async Task ChangePassword_WhenValidRequest_ShouldChangePassword()
+        {
+            //arrange
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, "testuser")
+            };
+            var identity = new ClaimsIdentity(claims);
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
+            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
+            var changePasswordRequest = new ChangePasswordRequest
+            {
+                OldPassword = "oldpassword",
+                NewPassword = "newpassword"
+            };
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+            //act
+            await _userService.ChangePassword(changePasswordRequest);
+            //assert
+            _userRepositoryMock.Verify(repo => repo.ChangePassord(It.Is<LoginUserDTO>(u => u.Username == "testuser" && u.Password != "oldpassword")), Times.Once);
         }
     }
 }

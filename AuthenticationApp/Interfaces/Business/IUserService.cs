@@ -1,4 +1,5 @@
 ﻿using AuthenticationApp.Domain.DTOs;
+using AuthenticationApp.Domain.Request;
 
 namespace AuthenticationApp.Interfaces.Business
 {
@@ -8,9 +9,6 @@ namespace AuthenticationApp.Interfaces.Business
         Task<UserDTO> GetUserByCredentials(string username, string password);
         Task UpdateRefreshToken(string username, string newToken);
         Task<UserDTO> GetUserByRefreshToken(string refreshToken);
-        //Task<UserDTO> GetUserById(int id);
-        //Task<IEnumerable<UserDTO>> GetAllUsers();
-        //Task UpdateUser(int id, UpdateUserDTO user);
-        //Task DeleteUser(int id);
+        Task ChangePassword(ChangePasswordRequest changePasswordRequest);
     }
 }

@@ -5,24 +5,19 @@ using AuthenticationApp.Interfaces.Business;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Authentication;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AuthenticationApp.Tests.Service
 {
-    public class LoginServiceTest
+    public class AuthServiceTest
     {
         private readonly Mock<IUserService> _userServiceMock;
         private readonly Mock<IConfiguration> _configurationMock;
         private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
         private readonly Mock<HttpContext> _httpContextMock;
-        private readonly LoginService _loginService;
-        public LoginServiceTest()
+        private readonly AuthService _loginService;
+        public AuthServiceTest()
         {
             _userServiceMock = new Mock<IUserService>();
             _configurationMock = new Mock<IConfiguration>();
@@ -43,7 +38,7 @@ namespace AuthenticationApp.Tests.Service
             _httpContextAccessorMock.Setup(x => x.HttpContext.Request.Headers["Authorization"])
                 .Returns("Bearer testtoken");
 
-            _loginService = new LoginService(_userServiceMock.Object, _configurationMock.Object, _httpContextAccessorMock.Object);
+            _loginService = new AuthService(_userServiceMock.Object, _configurationMock.Object, _httpContextAccessorMock.Object);
         }
 
         [Fact]
@@ -156,28 +151,6 @@ namespace AuthenticationApp.Tests.Service
 
             //assert
             Assert.False(result);
-        }
-
-        [Fact]
-        public async Task ChangePassword_WhenSamePassword_ShouldThrowInvalidOperationException()
-        {
-            //arrange
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, "testuser")
-            };
-            var identity = new ClaimsIdentity(claims);
-            var claimsPrincipal = new ClaimsPrincipal(identity);
-            _httpContextMock.Setup(x => x.User).Returns(claimsPrincipal);
-            _httpContextAccessorMock.Setup(x => x.HttpContext).Returns(_httpContextMock.Object);
-            var changePasswordRequest = new ChangePasswordRequest
-            {
-                OldPassword = "oldpassword",
-                NewPassword = "oldpassword"
-            };
-            //act and assert
-            var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _loginService.ChangePassword(changePasswordRequest));
-            Assert.Equal("A nova senha não pode ser igual à senha atual.", message.Message);
         }
     }
 }
