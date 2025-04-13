@@ -50,9 +50,9 @@ namespace AuthenticationApp.Endpoints
             {
                 try
                 {
-                    await loginService.Logout();
+                    var result = await loginService.Logout();
 
-                    return Results.Ok();
+                    return result ? Results.Ok() : Results.NotFound();
                 }
                 catch (Exception e)
                 {

@@ -35,7 +35,6 @@ namespace AuthenticationApp.Business.Services
             {
                 Username = user.Username,
                 Email = user.Email,
-                JwtToken = user.JwtToken,
                 RefreshToken = user.RefreshToken
             };
 
@@ -66,6 +65,7 @@ namespace AuthenticationApp.Business.Services
             return user;
         }
 
+        //usar Rfc2898DeriveBytes de using system.security.cryptography
         private static string HashPassord(string password) =>
             BCrypt.Net.BCrypt.HashPassword(password);
 

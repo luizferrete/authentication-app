@@ -1,5 +1,4 @@
 ﻿using AuthenticationApp.Domain.DTOs;
-using AuthenticationApp.Domain.Models;
 using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Domain.Response;
 using AuthenticationApp.Interfaces.Business;
@@ -82,16 +81,22 @@ namespace AuthenticationApp.Business.Services
             };
         }
 
-        public async Task Logout()
+        public async Task<bool> Logout()
         {
             var httpContext = context.HttpContext;
-            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            var email = httpContext.User.FindFirstValue(ClaimTypes.Email);
-
-            if(!string.IsNullOrEmpty(name))
+            if(httpContext is null)
             {
-                await userService.UpdateRefreshToken(name, string.Empty);
+                return false;
             }
+            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+
+            if(string.IsNullOrEmpty(name))
+            {
+                return false;
+            }
+
+            await userService.UpdateRefreshToken(name, string.Empty);
+            return true;
         }
     }
 }
