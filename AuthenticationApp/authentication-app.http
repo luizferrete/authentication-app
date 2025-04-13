@@ -1,4 +1,5 @@
 @authentication_app_HostAddress = https://localhost:44383
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InRlc3QiLCJlbWFpbCI6ImwuYS5mZXJyZXRlQGdtYWlsLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0NDU3MzM4NiwiZXhwIjoxNzQ0NTc0Mjg2LCJpYXQiOjE3NDQ1NzMzODYsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjQ0MzgzIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzODMifQ.eXeD8pu9iFKSX3mUpT39N4sRLCMu6KJDQsS7EBuFz-0
 
 POST {{authentication_app_HostAddress}}/user/
 Content-Type: application/json
@@ -12,7 +13,18 @@ Accept: application/json
 
 ###
 
-POST {{authentication_app_HostAddress}}/login/
+POST {{authentication_app_HostAddress}}/user/changepassword
+Content-Type: application/json
+Authorization: Bearer {{token}}
+Accept: application/json
+{
+  "oldPassword": "passw1234",
+  "newPassword": "passw123"
+}
+
+###
+
+POST {{authentication_app_HostAddress}}/auth/login/
 Content-Type: application/json
 Accept: application/json
 
@@ -20,3 +32,17 @@ Accept: application/json
   "username": "test",
   "password": "passw123"
 }
+
+###
+POST {{authentication_app_HostAddress}}/auth/refresh
+Content-Type: application/json
+Accept: application/json
+
+{
+  "refreshToken": "test"
+}
+
+###
+POST {{authentication_app_HostAddress}}/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{token}}

@@ -1,12 +1,14 @@
 ﻿using AuthenticationApp.Domain.DTOs;
+using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
 using BCrypt.Net;
 using System.Security.Authentication;
+using System.Security.Claims;
 
 namespace AuthenticationApp.Business.Services
 {
-    public class UserService(IUserRepository userRepository) : IUserService
+    public class UserService(IUserRepository userRepository, IHttpContextAccessor httpContext) : IUserService
     {
         
         public async Task CreateUser(CreateUserDTO userDTO)
@@ -17,7 +19,7 @@ namespace AuthenticationApp.Business.Services
                 throw new InvalidCredentialException("Usuário já existe.");
             }
 
-            userDTO.Password = HashPassord(userDTO.Password);
+            userDTO.Password = HashPassword(userDTO.Password);
 
             await userRepository.CreateUser(userDTO);
         }
@@ -65,8 +67,36 @@ namespace AuthenticationApp.Business.Services
             return user;
         }
 
+        public async Task ChangePassword(ChangePasswordRequest changePasswordRequest)
+        {
+            var claims = httpContext?.HttpContext?.User.Claims;
+            var username = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+            if (username is null)
+            {
+                throw new InvalidCredentialException("Usuário não encontrado.");
+            }
+            var user = await userRepository.GetUserByCredentials(username);
+            if (user is null)
+            {
+                throw new InvalidCredentialException("Usuário não encontrado.");
+            }
+            if (!VerifyPassword(changePasswordRequest.OldPassword, user.Password))
+            {
+                throw new InvalidOperationException("A senha atual não coincide com a informada.");
+            }
+            if (VerifyPassword(changePasswordRequest.NewPassword, user.Password))
+            {
+                throw new InvalidOperationException("A nova senha não pode ser igual à senha atual.");
+            }
+            
+            user.Password = HashPassword(changePasswordRequest.NewPassword);
+            user.RefreshToken = string.Empty;
+
+            await userRepository.ChangePassord(user);
+        }
+
         //usar Rfc2898DeriveBytes de using system.security.cryptography
-        private static string HashPassord(string password) =>
+        private static string HashPassword(string password) =>
             BCrypt.Net.BCrypt.HashPassword(password);
 
         private static bool VerifyPassword(string password, string hashedPassword) =>

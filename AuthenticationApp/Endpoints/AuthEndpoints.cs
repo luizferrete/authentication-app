@@ -6,11 +6,11 @@ using System.Security.Authentication;
 
 namespace AuthenticationApp.Endpoints
 {
-    public static class LoginEndpoints
+    public static class AuthEndpoints
     {
         public static IEndpointRouteBuilder MapLoginEndpoints(this IEndpointRouteBuilder routes)
         {
-            routes.MapPost("/login", async ([FromBody] LoginDTO login, ILoginService loginService) =>
+            routes.MapPost("auth/login", async ([FromBody] LoginDTO login, IAuthService loginService) =>
             {
                 try
                 {
@@ -28,7 +28,7 @@ namespace AuthenticationApp.Endpoints
             .WithDescription("Logs in a user.")
             .WithOpenApi();
 
-            routes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, ILoginService loginService) =>
+            routes.MapPost("/auth/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
             {
                 try
                 {
@@ -46,7 +46,7 @@ namespace AuthenticationApp.Endpoints
             .WithDescription("Refresh token login.")
             .WithOpenApi();
 
-            routes.MapPost("/logout", async (ILoginService loginService) =>
+            routes.MapPost("auth/logout", async (IAuthService loginService) =>
             {
                 try
                 {

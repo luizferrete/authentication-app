@@ -2,6 +2,7 @@
 using AuthenticationApp.Domain.Models;
 using AuthenticationApp.Interfaces.DataAccess;
 using MongoDB.Driver;
+using System.Security.Authentication;
 
 namespace AuthenticationApp.DataAccess.Repositories
 {
@@ -95,6 +96,20 @@ namespace AuthenticationApp.DataAccess.Repositories
             {
                 throw new Exception("User not found");
             }
+        }
+
+        public async Task<int> ChangePassord(LoginUserDTO user)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Username, user.Username);
+            var update = Builders<User>.Update
+                .Set(u => u.Password, user.Password)
+                .Set(u => u.RefreshToken, user.RefreshToken);
+            var result = await _users.UpdateOneAsync(filter, update);
+            if (result.MatchedCount == 0)
+            {
+                throw new InvalidCredentialException("User not found");
+            }
+            return (int)result.ModifiedCount;
         }
     }
 }

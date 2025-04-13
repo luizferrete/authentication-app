@@ -10,5 +10,6 @@ namespace AuthenticationApp.Interfaces.DataAccess
         Task UpdateUser(UserDTO userDTO);
         Task<UserDTO> GetUserByUsername(string username);
         Task<UserDTO> GetUserByRefreshToken(string refreshToken);
+        Task<int> ChangePassord(LoginUserDTO user);
     }
 }

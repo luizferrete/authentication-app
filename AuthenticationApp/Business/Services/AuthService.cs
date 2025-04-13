@@ -9,7 +9,7 @@ using System.Text;
 
 namespace AuthenticationApp.Business.Services
 {
-    public class LoginService(IUserService userService, IConfiguration configuration, IHttpContextAccessor context) : ILoginService
+    public class AuthService(IUserService userService, IConfiguration configuration, IHttpContextAccessor context) : IAuthService
     {
         public async Task<LoginResponse> Login(LoginDTO login)
         {
@@ -98,5 +98,33 @@ namespace AuthenticationApp.Business.Services
             await userService.UpdateRefreshToken(name, string.Empty);
             return true;
         }
+
+        public async Task<bool> ValidateToken(string token)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var privateKey = configuration["JWTToken:PrivateKey"] ?? "";
+            var issuer = configuration["JWTToken:Issuer"] ?? "";
+            var audience = configuration["JWTToken:Audience"] ?? "";
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(privateKey)),
+                ValidateIssuer = true,
+                ValidIssuer = issuer,
+                ValidateAudience = true,
+                ValidAudience = audience,
+                ValidateLifetime = true
+            };
+            try
+            {
+                handler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
     }
 }
