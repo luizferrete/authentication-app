@@ -10,7 +10,11 @@ namespace AuthenticationApp.Endpoints
     {
         public static IEndpointRouteBuilder MapUserEndpoints(this IEndpointRouteBuilder routes)
         {
-            routes.MapPost("/user", async ([FromBody] CreateUserDTO user, IUserService userService) =>
+            var userRoutes = routes.MapGroup("/user")
+                .WithTags("Users")
+                .WithOpenApi();
+
+            userRoutes.MapPost("/", async ([FromBody] CreateUserDTO user, IUserService userService) =>
             {
                 try
                 {
@@ -22,10 +26,9 @@ namespace AuthenticationApp.Endpoints
                 }
             })
             .WithName("CreateUser")
-            .WithDescription("Creates a new user.")
-            .WithOpenApi();
+            .WithDescription("Creates a new user.");
 
-            routes.MapPost("/user/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService) =>
+            userRoutes.MapPost("/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService) =>
             {
                 try
                 {
@@ -43,8 +46,7 @@ namespace AuthenticationApp.Endpoints
             })
             .RequireAuthorization()
             .WithName("ChangePassword")
-            .WithDescription("Changes the password of a user.")
-            .WithOpenApi();
+            .WithDescription("Changes the password of a user.");
 
             return routes;
         }

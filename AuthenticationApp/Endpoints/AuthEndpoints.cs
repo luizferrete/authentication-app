@@ -10,7 +10,11 @@ namespace AuthenticationApp.Endpoints
     {
         public static IEndpointRouteBuilder MapLoginEndpoints(this IEndpointRouteBuilder routes)
         {
-            routes.MapPost("auth/login", async ([FromBody] LoginDTO login, IAuthService loginService) =>
+            var authRoutes = routes.MapGroup("/auth")
+               .WithTags("Authentication")
+               .WithOpenApi();
+
+            authRoutes.MapPost("/login", async ([FromBody] LoginDTO login, IAuthService loginService) =>
             {
                 try
                 {
@@ -25,10 +29,9 @@ namespace AuthenticationApp.Endpoints
 
             })
             .WithName("LoginUser")
-            .WithDescription("Logs in a user.")
-            .WithOpenApi();
+            .WithDescription("Logs in a user.");
 
-            routes.MapPost("/auth/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
+            authRoutes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
             {
                 try
                 {
@@ -43,10 +46,9 @@ namespace AuthenticationApp.Endpoints
 
             })
             .WithName("Refresh")
-            .WithDescription("Refresh token login.")
-            .WithOpenApi();
+            .WithDescription("Refresh token login.");
 
-            routes.MapPost("auth/logout", async (IAuthService loginService) =>
+            authRoutes.MapPost("/logout", async (IAuthService loginService) =>
             {
                 try
                 {
@@ -62,8 +64,7 @@ namespace AuthenticationApp.Endpoints
             })
            .RequireAuthorization()
            .WithName("Logout")
-           .WithDescription("Logs out a user.")
-           .WithOpenApi();
+           .WithDescription("Logs out a user.");
 
             return routes;
         }
