@@ -5,6 +5,7 @@ using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
 using Microsoft.AspNetCore.Http;
+using MongoDB.Driver;
 using Moq;
 using System;
 using System.Collections.Generic;
@@ -21,14 +22,36 @@ namespace AuthenticationApp.Tests.Service
         private readonly Mock<IUserRepository> _userRepositoryMock;
         private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
         private readonly Mock<HttpContext> _httpContextMock;
+        private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly UserService _userService;
+        private readonly IClientSessionHandle _fakeSession;
 
         public UserServiceTest() 
         {
             _userRepositoryMock = new Mock<IUserRepository>();
             _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
             _httpContextMock = new Mock<HttpContext>();
-            _userService = new UserService(_userRepositoryMock.Object, _httpContextAccessorMock.Object);
+            _unitOfWorkMock = new Mock<IUnitOfWork>();
+
+            _fakeSession = Mock.Of<IClientSessionHandle>();
+
+            _unitOfWorkMock
+                .Setup(u => u.StartTransaction())
+                .Callback(() => { /* não faz nada */ });
+
+            _unitOfWorkMock
+                .SetupGet(u => u.Session)
+                .Returns(_fakeSession);
+
+            _unitOfWorkMock
+                .SetupGet(u => u.Users)
+                .Returns(_userRepositoryMock.Object);
+
+            _unitOfWorkMock
+                .Setup(u => u.CommitAsync())
+                .Returns(Task.CompletedTask);
+
+            _userService = new UserService(_userRepositoryMock.Object, _httpContextAccessorMock.Object, _unitOfWorkMock.Object);
         }
 
         [Fact]
@@ -37,12 +60,12 @@ namespace AuthenticationApp.Tests.Service
             // Arrange
             var userDTO = new CreateUserDTO { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
             var existingUser = new LoginUserDTO { Username = "testuser" };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username, _fakeSession))
                 .ReturnsAsync(existingUser);
 
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.CreateUser(userDTO));
-            _userRepositoryMock.Verify(repo => repo.CreateUser(It.IsAny<CreateUserDTO>()), Times.Never);
+            _userRepositoryMock.Verify(repo => repo.CreateUser(It.IsAny<CreateUserDTO>(), null), Times.Never);
             Assert.Equal("Usuário já existe.", message.Message);
         }
 
@@ -51,7 +74,7 @@ namespace AuthenticationApp.Tests.Service
         {
             //arrange
             var userDTO = new CreateUserDTO { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username, _fakeSession))
                 .ReturnsAsync((LoginUserDTO)null);
             //act
             await _userService.CreateUser(userDTO);
@@ -60,14 +83,14 @@ namespace AuthenticationApp.Tests.Service
             _userRepositoryMock.Verify(repo => repo.CreateUser(
             It.Is<CreateUserDTO>(
                 dto => dto.Username == "testuser" && dto.Password != "password"
-            )), Times.Once);
+            ), _fakeSession), Times.Once);
         }
 
         [Fact]
         public async Task GetUserByCredentials_WhenUserNotFound_ThrowsInvalidCredentialException()
         {
             //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("nonexistentuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("nonexistentuser", _fakeSession))
                 .ReturnsAsync((LoginUserDTO)null);
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.GetUserByCredentials("nonexistentuser", "password"));
@@ -80,7 +103,7 @@ namespace AuthenticationApp.Tests.Service
             //arrange
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword("correctpassword");
             var user = new LoginUserDTO { Username = "testuser", Password = hashedPassword };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", _fakeSession))
                 .ReturnsAsync(user);
 
             //act and assert
@@ -94,7 +117,7 @@ namespace AuthenticationApp.Tests.Service
             //arrange
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword("correctpassword");
             var user = new LoginUserDTO { Username = "testuser", Password = hashedPassword };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync(user);
             //act
             var result = await _userService.GetUserByCredentials("testuser", "correctpassword");
@@ -108,7 +131,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task UpdateRefreshToken_WhenUserNotFound_ThrowsInvalidCredentialException()
         {
             //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByUsername("nonexistentuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByUsername("nonexistentuser", _fakeSession))
                 .ReturnsAsync((UserDTO)null);
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.UpdateRefreshToken("nonexistentuser", "newtoken"));
@@ -119,12 +142,12 @@ namespace AuthenticationApp.Tests.Service
         public async Task UpdateRefreshToken_WhenValidUser_ShouldCallRepo()
         {
             //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByUsername("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByUsername("testuser", null))
                 .ReturnsAsync(new UserDTO { Username = "testuser" });
             //act
             await _userService.UpdateRefreshToken("testuser", "newtoken");
             //assert
-            _userRepositoryMock.Verify(repo => repo.UpdateUser(It.Is<UserDTO>(u => u.Username == "testuser" && u.RefreshToken == "newtoken")), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.UpdateUser(It.Is<UserDTO>(u => u.Username == "testuser" && u.RefreshToken == "newtoken"), null), Times.Once);
 
         }
 
@@ -132,7 +155,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task GetUserByRefreshToken_WhenUserNotFound_ThrowsInvalidCredentialException()
         {
             //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByRefreshToken("invalidtoken"))
+            _userRepositoryMock.Setup(x => x.GetUserByRefreshToken("invalidtoken", _fakeSession))
                 .ReturnsAsync((UserDTO)null);
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.GetUserByRefreshToken("invalidtoken"));
@@ -144,7 +167,7 @@ namespace AuthenticationApp.Tests.Service
         {
             //arrange
             var user = new UserDTO { Username = "testuser", RefreshToken = "validToken" };
-            _userRepositoryMock.Setup(x => x.GetUserByRefreshToken("validToken"))
+            _userRepositoryMock.Setup(x => x.GetUserByRefreshToken("validToken", null))
                 .ReturnsAsync(user);
 
             //act
@@ -189,7 +212,7 @@ namespace AuthenticationApp.Tests.Service
                 OldPassword = "oldpassword",
                 NewPassword = "newpassword"
             };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync((LoginUserDTO)null);
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.ChangePassword(changePasswordRequest));
@@ -213,7 +236,7 @@ namespace AuthenticationApp.Tests.Service
                 OldPassword = "oldpassword",
                 NewPassword = "oldpassword"
             };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
 
             //act and assert
@@ -238,7 +261,7 @@ namespace AuthenticationApp.Tests.Service
                 OldPassword = "wrongpassword",
                 NewPassword = "newpassword"
             };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.ChangePassword(changePasswordRequest));
@@ -262,12 +285,12 @@ namespace AuthenticationApp.Tests.Service
                 OldPassword = "oldpassword",
                 NewPassword = "newpassword"
             };
-            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser"))
+            _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
             //act
             await _userService.ChangePassword(changePasswordRequest);
             //assert
-            _userRepositoryMock.Verify(repo => repo.ChangePassord(It.Is<LoginUserDTO>(u => u.Username == "testuser" && u.Password != "oldpassword")), Times.Once);
+            _userRepositoryMock.Verify(repo => repo.ChangePassord(It.Is<LoginUserDTO>(u => u.Username == "testuser" && u.Password != "oldpassword"), _fakeSession), Times.Once);
         }
     }
 }
