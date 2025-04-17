@@ -8,27 +8,37 @@ using System.Security.Claims;
 
 namespace AuthenticationApp.Business.Services
 {
-    public class UserService(IUserRepository userRepository, IHttpContextAccessor httpContext) : IUserService
+    public class UserService(IUserRepository userRepository, IHttpContextAccessor httpContext, IUnitOfWork unitOfWork) : IUserService
     {
         
         public async Task CreateUser(CreateUserDTO userDTO)
         {
-            var user = await userRepository.GetUserByCredentials(userDTO.Username);
-            if(user is not null)
+            try
             {
-                throw new InvalidCredentialException("Usuário já existe.");
+                unitOfWork.StartTransaction();
+                var user = await unitOfWork.Users.GetUserByCredentials(userDTO.Username, unitOfWork.Session);
+                if (user is not null)
+                {
+                    throw new InvalidCredentialException("Usuário já existe.");
+                }
+
+                userDTO.Password = HashPassword(userDTO.Password);
+
+                await unitOfWork.Users.CreateUser(userDTO, unitOfWork.Session);
+                await unitOfWork.CommitAsync();
             }
-
-            userDTO.Password = HashPassword(userDTO.Password);
-
-            await userRepository.CreateUser(userDTO);
+            finally
+            {
+                unitOfWork.Dispose();
+            }
+            
         }
 
         public async Task<UserDTO> GetUserByCredentials(string username, string password)
         {
             var user = await userRepository.GetUserByCredentials(username);
 
-            if(user is null || !VerifyPassword(password, user.Password))
+            if (user is null || !VerifyPassword(password, user.Password))
             {
                 throw new InvalidCredentialException("Usuário ou senha inválida.");
             }
@@ -39,22 +49,32 @@ namespace AuthenticationApp.Business.Services
                 Email = user.Email,
                 RefreshToken = user.RefreshToken
             };
-
             return loggedUser;
         }
 
         public async Task UpdateRefreshToken(string username, string newToken)
         {
-            var user = await userRepository.GetUserByUsername(username);
-
-            if (user is null)
+            try
             {
-                throw new InvalidCredentialException("Usuário não encontrado.");
+                unitOfWork.StartTransaction();
+                var user = await userRepository.GetUserByUsername(username);
+
+                if (user is null)
+                {
+                    throw new InvalidCredentialException("Usuário não encontrado.");
+                }
+
+                user.RefreshToken = newToken;
+
+                await userRepository.UpdateUser(user);
+                await unitOfWork.CommitAsync();
             }
-
-            user.RefreshToken = newToken;
-
-            await userRepository.UpdateUser(user);
+            catch (Exception)
+            {
+                unitOfWork.Dispose();
+                throw;
+            }
+            
         }
 
         public async Task<UserDTO> GetUserByRefreshToken(string refreshToken)
@@ -92,7 +112,17 @@ namespace AuthenticationApp.Business.Services
             user.Password = HashPassword(changePasswordRequest.NewPassword);
             user.RefreshToken = string.Empty;
 
-            await userRepository.ChangePassord(user);
+            try
+            {
+                unitOfWork.StartTransaction();
+                await userRepository.ChangePassord(user, unitOfWork.Session);
+                await unitOfWork.CommitAsync();
+            }
+            catch
+            {
+                unitOfWork.Dispose();
+            }
+            
         }
 
         //usar Rfc2898DeriveBytes de using system.security.cryptography

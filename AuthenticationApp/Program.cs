@@ -11,6 +11,8 @@ using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using System.Text;
 using Scalar.AspNetCore;
+using AuthenticationApp.DataAccess.UnitOfWork;
+using AuthenticationApp.DataAccess.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +35,18 @@ builder.Services.AddSingleton(sp =>
     return client.GetDatabase(settings.Database);
 });
 
+builder.Services.AddSingleton<IMongoDbContext>(sp =>
+        {
+            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>().Value;
+            return new MongoDbContext(
+              settings.ConnectionString,
+              settings.Database
+            );
+        }
+    );
+
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

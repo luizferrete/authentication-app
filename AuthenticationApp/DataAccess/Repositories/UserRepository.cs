@@ -1,4 +1,5 @@
-﻿using AuthenticationApp.Domain.DTOs;
+﻿using AuthenticationApp.DataAccess.Context;
+using AuthenticationApp.Domain.DTOs;
 using AuthenticationApp.Domain.Models;
 using AuthenticationApp.Interfaces.DataAccess;
 using MongoDB.Driver;
@@ -9,12 +10,12 @@ namespace AuthenticationApp.DataAccess.Repositories
     public class UserRepository : IUserRepository
     {
         private readonly IMongoCollection<User> _users;
-        public UserRepository(IMongoDatabase database)
+        public UserRepository(IMongoDbContext context)
         {
-            _users = database.GetCollection<User>(nameof(User));
+            _users = context.Users;
         }
 
-        public async Task CreateUser(CreateUserDTO userDTO)
+        public async Task CreateUser(CreateUserDTO userDTO, IClientSessionHandle? session = null)
         {
             var user = new User
             {
@@ -22,12 +23,20 @@ namespace AuthenticationApp.DataAccess.Repositories
                 Password = userDTO.Password,
                 Email = userDTO.Email
             };
-            await _users.InsertOneAsync(user);
+            if (session != null)
+            {
+                await _users.InsertOneAsync(session, user);
+                return;
+            }
+            else
+                await _users.InsertOneAsync(user);
         }
 
-        public async Task<LoginUserDTO> GetUserByCredentials(string username)
+        public async Task<LoginUserDTO> GetUserByCredentials(string username, IClientSessionHandle? session = null)
         {
-            var user = await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
+            var user = session != null
+                ? await _users.Find(session, x => x.Username == username).FirstOrDefaultAsync()
+                : await _users.Find( x => x.Username == username).FirstOrDefaultAsync();
             if (user == null)
             {
                 return null;
@@ -41,9 +50,11 @@ namespace AuthenticationApp.DataAccess.Repositories
             };
         }
 
-        public async Task<UserDTO> GetUserByRefreshToken(string refreshToken)
+        public async Task<UserDTO> GetUserByRefreshToken(string refreshToken, IClientSessionHandle?  session = null)
         {
-            var user = await _users.Find(x => x.RefreshToken == refreshToken).FirstOrDefaultAsync();
+            var user = session != null 
+                ? await _users.Find(session, x => x.RefreshToken == refreshToken).FirstOrDefaultAsync()
+                : await _users.Find(x => x.RefreshToken == refreshToken).FirstOrDefaultAsync();
             if (user == null)
             {
                 return null;
@@ -58,9 +69,11 @@ namespace AuthenticationApp.DataAccess.Repositories
             };
         }
 
-        public async Task<UserDTO> GetUserByUsername(string username)
+        public async Task<UserDTO> GetUserByUsername(string username, IClientSessionHandle? session = null)
         {
-            var user = await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
+            var user = session != null
+                ? await _users.Find(session, x => x.Username == username).FirstOrDefaultAsync()
+                : await _users.Find(x => x.Username == username).FirstOrDefaultAsync();
             if (user == null)
             {
                 return null;
@@ -75,9 +88,11 @@ namespace AuthenticationApp.DataAccess.Repositories
             };
         }
 
-        public async Task UpdateUser(UserDTO userDTO)
+        public async Task UpdateUser(UserDTO userDTO, IClientSessionHandle? session = null)
         {
-            var user = await _users.Find(x => x.Id == userDTO.Id).FirstOrDefaultAsync();
+            var user = session != null
+                ? await _users.Find(session, x => x.Id == userDTO.Id).FirstOrDefaultAsync()
+                : await _users.Find(x => x.Id == userDTO.Id).FirstOrDefaultAsync();
             if (user == null)
             {
                 throw new Exception("User not found");
@@ -90,7 +105,9 @@ namespace AuthenticationApp.DataAccess.Repositories
                 .Set(x => x.Username, user.Username)
                 .Set(x => x.Email, user.Email)
                 .Set(x => x.RefreshToken, user.RefreshToken);
-            var result = await _users.UpdateOneAsync(filter, update);
+            var result = session != null
+                ? await _users.UpdateOneAsync(session, filter, update)
+                : await _users.UpdateOneAsync(filter, update);
 
             if (result.MatchedCount == 0)
             {
@@ -98,13 +115,15 @@ namespace AuthenticationApp.DataAccess.Repositories
             }
         }
 
-        public async Task<int> ChangePassord(LoginUserDTO user)
+        public async Task<int> ChangePassord(LoginUserDTO user, IClientSessionHandle? session = null)
         {
             var filter = Builders<User>.Filter.Eq(u => u.Username, user.Username);
             var update = Builders<User>.Update
                 .Set(u => u.Password, user.Password)
                 .Set(u => u.RefreshToken, user.RefreshToken);
-            var result = await _users.UpdateOneAsync(filter, update);
+            var result = session != null
+                ? await _users.UpdateOneAsync(session, filter, update)
+                : await _users.UpdateOneAsync(filter, update);
             if (result.MatchedCount == 0)
             {
                 throw new InvalidCredentialException("User not found");
