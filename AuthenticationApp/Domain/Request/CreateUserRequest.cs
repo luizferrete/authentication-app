@@ -1,6 +1,6 @@
-﻿namespace AuthenticationApp.Domain.DTOs
+﻿namespace AuthenticationApp.Domain.Request
 {
-    public class CreateUserDTO
+    public class CreateUserRequest
     {
         public required string Username { get; set; }
         public required string Password { get; set; }

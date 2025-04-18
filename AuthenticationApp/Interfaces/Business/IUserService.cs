@@ -5,7 +5,7 @@ namespace AuthenticationApp.Interfaces.Business
 {
     public interface IUserService
     {
-        Task CreateUser(CreateUserDTO user);
+        Task CreateUser(CreateUserRequest user);
         Task<UserDTO> GetUserByCredentials(string username, string password);
         Task UpdateRefreshToken(string username, string newToken);
         Task<UserDTO> GetUserByRefreshToken(string refreshToken);

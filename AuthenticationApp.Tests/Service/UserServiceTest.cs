@@ -52,14 +52,14 @@ namespace AuthenticationApp.Tests.Service
         public async Task CreateUser_WhenUserAlreadyExists_ThrowsInvalidCredentialException()
         {
             // Arrange
-            var userDTO = new CreateUserDTO { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
+            var userDTO = new CreateUserRequest { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
             var existingUser = new LoginUserDTO { Username = "testuser" };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username, _fakeSession))
                 .ReturnsAsync(existingUser);
 
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.CreateUser(userDTO));
-            _userRepositoryMock.Verify(repo => repo.CreateUser(It.IsAny<CreateUserDTO>(), null), Times.Never);
+            _userRepositoryMock.Verify(repo => repo.CreateUser(It.IsAny<CreateUserRequest>(), null), Times.Never);
             Assert.Equal("Usuário já existe.", message.Message);
         }
 
@@ -67,7 +67,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task CreateUser_WhenValidUser_ShouldCreateUser()
         {
             //arrange
-            var userDTO = new CreateUserDTO { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
+            var userDTO = new CreateUserRequest { Username = "testuser", Password = "password", Email = "testemail@gmail.com" };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials(userDTO.Username, _fakeSession))
                 .ReturnsAsync((LoginUserDTO)null);
             //act
@@ -75,7 +75,7 @@ namespace AuthenticationApp.Tests.Service
 
             //assert
             _userRepositoryMock.Verify(repo => repo.CreateUser(
-            It.Is<CreateUserDTO>(
+            It.Is<CreateUserRequest>(
                 dto => dto.Username == "testuser" && dto.Password != "password"
             ), _fakeSession), Times.Once);
         }
