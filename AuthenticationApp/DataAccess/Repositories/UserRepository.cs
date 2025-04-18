@@ -1,6 +1,7 @@
 ﻿using AuthenticationApp.DataAccess.Context;
 using AuthenticationApp.Domain.DTOs;
 using AuthenticationApp.Domain.Models;
+using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.DataAccess;
 using MongoDB.Driver;
 using System.Security.Authentication;
@@ -15,7 +16,7 @@ namespace AuthenticationApp.DataAccess.Repositories
             _users = context.Users;
         }
 
-        public async Task CreateUser(CreateUserDTO userDTO, IClientSessionHandle? session = null)
+        public async Task CreateUser(CreateUserRequest userDTO, IClientSessionHandle? session = null)
         {
             var user = new User
             {

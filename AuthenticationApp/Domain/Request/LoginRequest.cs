@@ -1,6 +1,6 @@
-﻿namespace AuthenticationApp.Domain.DTOs
+﻿namespace AuthenticationApp.Domain.Request
 {
-    public class LoginDTO
+    public class LoginRequest
     {
         public string Username { get; set; }
         public string Password { get; set; }

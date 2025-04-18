@@ -11,7 +11,7 @@ namespace AuthenticationApp.Business.Services
 {
     public class AuthService(IUserService userService, IConfiguration configuration, IHttpContextAccessor context) : IAuthService
     {
-        public async Task<LoginResponse> Login(LoginDTO login)
+        public async Task<LoginResponse> Login(LoginRequest login)
         {
             var user = await userService.GetUserByCredentials(login.Username, login.Password);
 

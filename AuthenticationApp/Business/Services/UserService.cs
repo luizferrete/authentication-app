@@ -11,7 +11,7 @@ namespace AuthenticationApp.Business.Services
     public class UserService(IUserRepository userRepository, IHttpContextAccessor httpContext, IUnitOfWork unitOfWork) : IUserService
     {
         
-        public async Task CreateUser(CreateUserDTO userDTO)
+        public async Task CreateUser(CreateUserRequest userDTO)
         {
             try
             {

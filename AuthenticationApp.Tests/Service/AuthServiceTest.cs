@@ -45,7 +45,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task Login_WhenUserNotFound_ThrowsInvalidCredentialException()
         {
             // Arrange
-            var loginDTO = new LoginDTO { Username = "testuser", Password = "password" };
+            var loginDTO = new LoginRequest { Username = "testuser", Password = "password" };
             _userServiceMock.Setup(x => x.GetUserByCredentials(loginDTO.Username, loginDTO.Password))
                 .ThrowsAsync(new InvalidCredentialException("Usuário ou senha inválida."));
             // Act and Assert
@@ -57,7 +57,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task Login_WhenValidLogin_ShouldReturnLoginResponse()
         {
             //arrange
-            var loginDTO = new LoginDTO { Username = "testuser", Password = "password" };
+            var loginDTO = new LoginRequest { Username = "testuser", Password = "password" };
             var userDTO = new UserDTO { Username = "testuser", Email = "test@test.com", RefreshToken = "MockToken" };
             _userServiceMock.Setup(x => x.GetUserByCredentials(loginDTO.Username, loginDTO.Password))
                 .ReturnsAsync(userDTO);

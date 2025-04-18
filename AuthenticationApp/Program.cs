@@ -13,13 +13,19 @@ using System.Text;
 using Scalar.AspNetCore;
 using AuthenticationApp.DataAccess.UnitOfWork;
 using AuthenticationApp.DataAccess.Context;
+using AuthenticationApp.Domain.Validators.Request;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddValidatorsFromAssemblyContaining<CreateUserRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<ChangePasswordRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<RefreshTokenRequestValidator>();
+
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection(nameof(MongoDB)));
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -36,14 +42,14 @@ builder.Services.AddSingleton(sp =>
 });
 
 builder.Services.AddSingleton<IMongoDbContext>(sp =>
-        {
-            var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>().Value;
-            return new MongoDbContext(
-              settings.ConnectionString,
-              settings.Database
-            );
-        }
-    );
+    {
+        var settings = sp.GetRequiredService<IOptions<MongoDBSettings>>().Value;
+        return new MongoDbContext(
+            settings.ConnectionString,
+            settings.Database
+        );
+    }
+);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

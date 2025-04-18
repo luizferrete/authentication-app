@@ -1,6 +1,6 @@
-﻿using AuthenticationApp.Domain.DTOs;
-using AuthenticationApp.Domain.Request;
+﻿using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Authentication;
 
@@ -14,13 +14,21 @@ namespace AuthenticationApp.Endpoints
                 .WithTags("Users")
                 .WithOpenApi();
 
-            userRoutes.MapPost("/", async ([FromBody] CreateUserDTO user, IUserService userService) =>
+            userRoutes.MapPost("/", async ([FromBody] CreateUserRequest user, IUserService userService, IValidator<CreateUserRequest> validator) =>
             {
                 try
                 {
+                    var validationResult = await validator.ValidateAsync(user);
+
+                    if (!validationResult.IsValid)
+                    {
+                        return Results.ValidationProblem(validationResult.ToDictionary());
+                    }
+
                     await userService.CreateUser(user);
                     return Results.Created();
-                } catch(Exception e)
+                } 
+                catch(Exception e)
                 {
                     return Results.BadRequest(e.Message);
                 }
@@ -28,10 +36,17 @@ namespace AuthenticationApp.Endpoints
             .WithName("CreateUser")
             .WithDescription("Creates a new user.");
 
-            userRoutes.MapPost("/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService) =>
+            userRoutes.MapPost("/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService, IValidator<ChangePasswordRequest> validator) =>
             {
                 try
                 {
+                    var validationResult = await validator.ValidateAsync(changePassword);
+
+                    if (!validationResult.IsValid)
+                    {
+                        return Results.ValidationProblem(validationResult.ToDictionary());
+                    }
+
                     await userService.ChangePassword(changePassword);
                     return Results.Ok();
                 }

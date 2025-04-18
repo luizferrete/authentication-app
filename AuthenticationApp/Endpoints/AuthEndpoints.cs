@@ -1,6 +1,6 @@
-﻿using AuthenticationApp.Domain.DTOs;
-using AuthenticationApp.Domain.Request;
+﻿using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Authentication;
 
@@ -14,10 +14,17 @@ namespace AuthenticationApp.Endpoints
                .WithTags("Authentication")
                .WithOpenApi();
 
-            authRoutes.MapPost("/login", async ([FromBody] LoginDTO login, IAuthService loginService) =>
+            authRoutes.MapPost("/login", async ([FromBody] LoginRequest login, IAuthService loginService, IValidator<LoginRequest> validator) =>
             {
                 try
                 {
+                    var validationResult = await validator.ValidateAsync(login);
+
+                    if (!validationResult.IsValid)
+                    {
+                        return Results.ValidationProblem(validationResult.ToDictionary());
+                    }
+
                     var response = await loginService.Login(login);
 
                     return Results.Ok(response);
@@ -31,10 +38,17 @@ namespace AuthenticationApp.Endpoints
             .WithName("LoginUser")
             .WithDescription("Logs in a user.");
 
-            authRoutes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
+            authRoutes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService, IValidator<RefreshTokenRequest> validator) =>
             {
                 try
                 {
+                    var validationRequest = await validator.ValidateAsync(request);
+
+                    if (!validationRequest.IsValid)
+                    {
+                        return Results.ValidationProblem(validationRequest.ToDictionary());
+                    }
+
                     var response = await loginService.RefreshToken(request);
 
                     return Results.Ok(response);
