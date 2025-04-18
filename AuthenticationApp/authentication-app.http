@@ -6,9 +6,9 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "teaaaaaaaast",
-  "password": "passaaaaaaaw123",
-  "email": "aaaaaaaal.a.ferrete@gmail.com"
+  "username": "test",
+  "password": "pass123",
+  "email": "l.a.ferrete@gmail.com"
 }
 
 ###
@@ -30,7 +30,7 @@ Accept: application/json
 
 {
   "username": "test",
-  "password": "passw123"
+  "password": "pass123"
 }
 
 ###

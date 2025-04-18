@@ -2,7 +2,7 @@
 using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
-using BCrypt.Net;
+using AuthenticationApp.Utils.Security;
 using System.Security.Authentication;
 using System.Security.Claims;
 
@@ -22,7 +22,7 @@ namespace AuthenticationApp.Business.Services
                     throw new InvalidCredentialException("Usuário já existe.");
                 }
 
-                userDTO.Password = HashPassword(userDTO.Password);
+                userDTO.Password = PasswordHasher.HashPassword(userDTO.Password);
 
                 await unitOfWork.Users.CreateUser(userDTO, unitOfWork.Session);
                 await unitOfWork.CommitAsync();
@@ -38,7 +38,7 @@ namespace AuthenticationApp.Business.Services
         {
             var user = await userRepository.GetUserByCredentials(username);
 
-            if (user is null || !VerifyPassword(password, user.Password))
+            if (user is null || !PasswordHasher.VerifyPassword(password, user.Password))
             {
                 throw new InvalidCredentialException("Usuário ou senha inválida.");
             }
@@ -100,16 +100,16 @@ namespace AuthenticationApp.Business.Services
             {
                 throw new InvalidCredentialException("Usuário não encontrado.");
             }
-            if (!VerifyPassword(changePasswordRequest.OldPassword, user.Password))
+            if (!PasswordHasher.VerifyPassword(changePasswordRequest.OldPassword, user.Password))
             {
                 throw new InvalidOperationException("A senha atual não coincide com a informada.");
             }
-            if (VerifyPassword(changePasswordRequest.NewPassword, user.Password))
+            if (PasswordHasher.VerifyPassword(changePasswordRequest.NewPassword, user.Password))
             {
                 throw new InvalidOperationException("A nova senha não pode ser igual à senha atual.");
             }
             
-            user.Password = HashPassword(changePasswordRequest.NewPassword);
+            user.Password = PasswordHasher.HashPassword(changePasswordRequest.NewPassword);
             user.RefreshToken = string.Empty;
 
             try
@@ -124,12 +124,5 @@ namespace AuthenticationApp.Business.Services
             }
             
         }
-
-        //usar Rfc2898DeriveBytes de using system.security.cryptography
-        private static string HashPassword(string password) =>
-            BCrypt.Net.BCrypt.HashPassword(password);
-
-        private static bool VerifyPassword(string password, string hashedPassword) =>
-            BCrypt.Net.BCrypt.Verify(password, hashedPassword);
     }
 }
