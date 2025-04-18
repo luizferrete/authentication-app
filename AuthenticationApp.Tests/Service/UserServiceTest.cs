@@ -1,19 +1,13 @@
 ﻿using AuthenticationApp.Business.Services;
 using AuthenticationApp.Domain.DTOs;
-using AuthenticationApp.Domain.Models;
 using AuthenticationApp.Domain.Request;
-using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
+using AuthenticationApp.Utils.Security;
 using Microsoft.AspNetCore.Http;
 using MongoDB.Driver;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Authentication;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AuthenticationApp.Tests.Service
 {
@@ -101,7 +95,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task GetUserByCredentials_WhenPasswordInvalid_ThrowsInvalidCredentialException()
         {
             //arrange
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword("correctpassword");
+            var hashedPassword = PasswordHasher.HashPassword("correctpassword");
             var user = new LoginUserDTO { Username = "testuser", Password = hashedPassword };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", _fakeSession))
                 .ReturnsAsync(user);
@@ -115,7 +109,7 @@ namespace AuthenticationApp.Tests.Service
         public async Task GetUserByCredentials_WhenUserAndPasswordAreValid_ShouldReturnLoginUserDTO()
         {
             //arrange
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword("correctpassword");
+            var hashedPassword = PasswordHasher.HashPassword("correctpassword");
             var user = new LoginUserDTO { Username = "testuser", Password = hashedPassword };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
                 .ReturnsAsync(user);
@@ -237,7 +231,7 @@ namespace AuthenticationApp.Tests.Service
                 NewPassword = "oldpassword"
             };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
-                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = PasswordHasher.HashPassword("oldpassword") });
 
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.ChangePassword(changePasswordRequest));
@@ -262,7 +256,7 @@ namespace AuthenticationApp.Tests.Service
                 NewPassword = "newpassword"
             };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
-                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = PasswordHasher.HashPassword("oldpassword") });
             //act and assert
             var message = await Assert.ThrowsAsync<InvalidOperationException>(() => _userService.ChangePassword(changePasswordRequest));
             Assert.Equal("A senha atual não coincide com a informada.", message.Message);
@@ -286,7 +280,7 @@ namespace AuthenticationApp.Tests.Service
                 NewPassword = "newpassword"
             };
             _userRepositoryMock.Setup(x => x.GetUserByCredentials("testuser", null))
-                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = BCrypt.Net.BCrypt.HashPassword("oldpassword") });
+                .ReturnsAsync(new LoginUserDTO { Username = "testuser", Password = PasswordHasher.HashPassword("oldpassword") });
             //act
             await _userService.ChangePassword(changePasswordRequest);
             //assert
