@@ -15,6 +15,7 @@ using AuthenticationApp.DataAccess.UnitOfWork;
 using AuthenticationApp.DataAccess.Context;
 using AuthenticationApp.Domain.Validators.Request;
 using FluentValidation;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<RefreshTokenRequestValidator>();
 
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection(nameof(MongoDB)));
+builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection(nameof(RedisSettings)));
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
@@ -50,6 +52,19 @@ builder.Services.AddSingleton<IMongoDbContext>(sp =>
         );
     }
 );
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    var redisSettings = builder.Configuration.GetSection(nameof(RedisSettings)).Get<RedisSettings>();
+    options.Configuration = redisSettings.ConnectionString;
+    options.InstanceName = redisSettings.InstanceName;
+});
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisSettings = builder.Configuration.GetSection(nameof(RedisSettings)).Get<RedisSettings>();
+    return ConnectionMultiplexer.Connect(redisSettings.ConnectionString);
+});
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

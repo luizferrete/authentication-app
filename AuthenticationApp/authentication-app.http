@@ -1,5 +1,5 @@
 @authentication_app_HostAddress = https://localhost:44383
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InRlc3QiLCJlbWFpbCI6ImwuYS5mZXJyZXRlQGdtYWlsLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0NTAxMjQwNiwiZXhwIjoxNzQ1MDEzMzA2LCJpYXQiOjE3NDUwMTI0MDYsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjQ0MzgzIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzODMifQ.3or45Mc2TWYTrIVoluYjJf51L91EYwgH5rm6J9bieLE
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InRlc3QiLCJlbWFpbCI6ImwuYS5mZXJyZXRlQGdtYWlsLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0Njc1ODE4NiwiZXhwIjoxNzQ2NzU5MDg2LCJpYXQiOjE3NDY3NTgxODYsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjQ0MzgzIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzODMifQ.jUbpmy3drHpPuNfR_H7oUXs_TyzLGDOsxxYdbpYkIn4
 
 POST {{authentication_app_HostAddress}}/user/
 Content-Type: application/json
@@ -30,7 +30,7 @@ Accept: application/json
 
 {
   "username": "test",
-  "password": "pass123"
+  "password": "Passw123@"
 }
 
 ###
@@ -39,10 +39,18 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "refreshToken": "testetsetststeststst"
+  "refreshToken": "d60267d2-102e-447f-b54b-dccd3191ee87"
 }
 
 ###
 POST {{authentication_app_HostAddress}}/auth/logout
+Content-Type: application/json
+Authorization: Bearer {{token}}
+Accept: application/json
+{
+  "refreshToken": "bfda65cd-7e23-42ab-ad5b-4151b2a6deeb"
+}
+###
+  POST {{authentication_app_HostAddress}}/auth/masslogout
 Content-Type: application/json
 Authorization: Bearer {{token}}

@@ -3,6 +3,7 @@ using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
 using AuthenticationApp.Interfaces.DataAccess;
 using AuthenticationApp.Utils.Security;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Authentication;
 using System.Security.Claims;
 
@@ -52,30 +53,19 @@ namespace AuthenticationApp.Business.Services
             return loggedUser;
         }
 
-        public async Task UpdateRefreshToken(string username, string newToken)
+        public async Task<UserDTO> GetUserByUsername(string username)
         {
-            try
+            unitOfWork.StartTransaction();
+            var user = await userRepository.GetUserByUsername(username);
+
+            if (user is null)
             {
-                unitOfWork.StartTransaction();
-                var user = await userRepository.GetUserByUsername(username);
-
-                if (user is null)
-                {
-                    throw new InvalidCredentialException("Usuário não encontrado.");
-                }
-
-                user.RefreshToken = newToken;
-
-                await userRepository.UpdateUser(user);
-                await unitOfWork.CommitAsync();
+                throw new InvalidCredentialException("Usuário não encontrado.");
             }
-            catch (Exception)
-            {
-                unitOfWork.Dispose();
-                throw;
-            }
-            
+
+            return user;
         }
+
 
         public async Task<UserDTO> GetUserByRefreshToken(string refreshToken)
         {

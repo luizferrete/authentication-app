@@ -7,8 +7,8 @@ namespace AuthenticationApp.Interfaces.Business
     {
         Task CreateUser(CreateUserRequest user);
         Task<UserDTO> GetUserByCredentials(string username, string password);
-        Task UpdateRefreshToken(string username, string newToken);
         Task<UserDTO> GetUserByRefreshToken(string refreshToken);
         Task ChangePassword(ChangePasswordRequest changePasswordRequest);
+        Task<UserDTO> GetUserByUsername(string username);
     }
 }

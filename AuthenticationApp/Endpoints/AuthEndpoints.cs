@@ -62,11 +62,11 @@ namespace AuthenticationApp.Endpoints
             .WithName("Refresh")
             .WithDescription("Refresh token login.");
 
-            authRoutes.MapPost("/logout", async (IAuthService loginService) =>
+            authRoutes.MapPost("/logout", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
             {
                 try
                 {
-                    var result = await loginService.Logout();
+                    var result = await loginService.Logout(request);
 
                     return result ? Results.Ok() : Results.NotFound();
                 }
@@ -79,6 +79,24 @@ namespace AuthenticationApp.Endpoints
            .RequireAuthorization()
            .WithName("Logout")
            .WithDescription("Logs out a user.");
+
+            authRoutes.MapPost("/masslogout", async (IAuthService loginService) =>
+            {
+                try
+                {
+                    var result = await loginService.MassLogout();
+
+                    return result ? Results.Ok() : Results.NotFound();
+                }
+                catch (Exception e)
+                {
+                    return Results.BadRequest(e);
+                }
+
+            })
+           .RequireAuthorization()
+           .WithName("MassLogout")
+           .WithDescription("Logs out the user from every device logged in.");
 
             return routes;
         }
