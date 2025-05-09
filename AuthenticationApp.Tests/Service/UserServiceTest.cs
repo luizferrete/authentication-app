@@ -122,30 +122,6 @@ namespace AuthenticationApp.Tests.Service
         }
 
         [Fact]
-        public async Task UpdateRefreshToken_WhenUserNotFound_ThrowsInvalidCredentialException()
-        {
-            //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByUsername("nonexistentuser", _fakeSession))
-                .ReturnsAsync((UserDTO)null);
-            //act and assert
-            var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _userService.UpdateRefreshToken("nonexistentuser", "newtoken"));
-            Assert.Equal("Usuário não encontrado.", message.Message);
-        }
-
-        [Fact]
-        public async Task UpdateRefreshToken_WhenValidUser_ShouldCallRepo()
-        {
-            //arrange
-            _userRepositoryMock.Setup(x => x.GetUserByUsername("testuser", null))
-                .ReturnsAsync(new UserDTO { Username = "testuser" });
-            //act
-            await _userService.UpdateRefreshToken("testuser", "newtoken");
-            //assert
-            _userRepositoryMock.Verify(repo => repo.UpdateUser(It.Is<UserDTO>(u => u.Username == "testuser" && u.RefreshToken == "newtoken"), null), Times.Once);
-
-        }
-
-        [Fact]
         public async Task GetUserByRefreshToken_WhenUserNotFound_ThrowsInvalidCredentialException()
         {
             //arrange
