@@ -14,6 +14,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using AuthenticationApp.Domain.Models;
+using AuthenticationApp.Infra.Interfaces;
 
 namespace AuthenticationApp.Tests.Service
 {
@@ -25,6 +26,7 @@ namespace AuthenticationApp.Tests.Service
         private readonly Mock<HttpContext> _httpContextMock;
         private readonly Mock<IConnectionMultiplexer> _redisMock;
         private readonly Mock<IDistributedCache> _cacheMock;
+        private readonly Mock<IQueuePublisher> _queueMock;
         private readonly AuthService _loginService;
         public AuthServiceTest()
         {
@@ -33,6 +35,7 @@ namespace AuthenticationApp.Tests.Service
             _httpContextMock = new Mock<HttpContext>();
             _redisMock = new Mock<IConnectionMultiplexer>();
             _cacheMock = new Mock<IDistributedCache>();
+            _queueMock = new Mock<IQueuePublisher>();
 
             var expirationSectionMock = new Mock<IConfigurationSection>();
             expirationSectionMock.Setup(x => x.Value).Returns("60");
@@ -61,7 +64,12 @@ namespace AuthenticationApp.Tests.Service
                 .Returns(IPAddress.Parse("123.45.67.89"));
 
 
-            _loginService = new AuthService(_userServiceMock.Object, _configurationMock.Object, _httpContextAccessorMock.Object, _cacheMock.Object, _redisMock.Object);
+            _loginService = new AuthService(_userServiceMock.Object
+                , _configurationMock.Object
+                , _httpContextAccessorMock.Object
+                , _cacheMock.Object
+                , _redisMock.Object
+                , _queueMock.Object);
         }
 
         [Fact]

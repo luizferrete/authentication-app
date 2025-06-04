@@ -16,6 +16,8 @@ using AuthenticationApp.DataAccess.Context;
 using AuthenticationApp.Domain.Validators.Request;
 using FluentValidation;
 using StackExchange.Redis;
+using AuthenticationApp.Infra.Interfaces;
+using AuthenticationApp.Infra;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +66,12 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
     var redisSettings = builder.Configuration.GetSection(nameof(RedisSettings)).Get<RedisSettings>();
     return ConnectionMultiplexer.Connect(redisSettings.ConnectionString);
+});
+
+builder.Services.AddSingleton<IQueuePublisher>(sp =>
+{
+    var rabbitSettings = builder.Configuration.GetSection(nameof(RabbitMQSettings)).Get<RabbitMQSettings>();
+    return new QueuePublisher(rabbitSettings!.Host, rabbitSettings.Port, rabbitSettings.UserName, rabbitSettings.Password);
 });
 
 builder.Services.AddHttpContextAccessor();
