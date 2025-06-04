@@ -1,6 +1,7 @@
 ﻿using AuthenticationApp.Domain.DTOs;
 using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Domain.Response;
+using AuthenticationApp.Infra.Interfaces;
 using AuthenticationApp.Interfaces.Business;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
@@ -13,7 +14,12 @@ using System.Text.Json;
 
 namespace AuthenticationApp.Business.Services
 {
-    public class AuthService(IUserService userService, IConfiguration configuration, IHttpContextAccessor context, IDistributedCache cache, IConnectionMultiplexer redis) : IAuthService
+    public class AuthService(IUserService userService
+        , IConfiguration configuration
+        , IHttpContextAccessor context
+        , IDistributedCache cache
+        , IConnectionMultiplexer redis
+        , IQueuePublisher queuePublisher) : IAuthService
     {
         private string GetClientIp() => context.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
@@ -23,6 +29,13 @@ namespace AuthenticationApp.Business.Services
 
             LoginResponse loginResponse = BuildLoginResponse(user);
             await UpdateUserRefreshToken(user, loginResponse);
+
+            queuePublisher.Publish("Email.Login", JsonSerializer.Serialize(new
+            {
+                user.Username,
+                user.Email,
+                Ip = GetClientIp()
+            }));
 
             return loginResponse;
         }
