@@ -156,7 +156,6 @@ namespace AuthenticationApp.Business.Services
             }
             var instanceName = "AuthenticationApp:";
             var cacheKey = $"{instanceName}loggedUser:{user.Email}:*";
-            var x = redis.GetEndPoints();
             var server = redis.GetServer(redis.GetEndPoints().First());
 
             foreach (var key in server.Keys(pattern: cacheKey))
