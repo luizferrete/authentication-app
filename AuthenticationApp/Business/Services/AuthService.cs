@@ -16,13 +16,11 @@ namespace AuthenticationApp.Business.Services
 {
     public class AuthService(IUserService userService
         , IConfiguration configuration
-        , IHttpContextAccessor context
+        , IUserContextService userContext
         , IDistributedCache cache
         , IConnectionMultiplexer redis
         , IQueuePublisher queuePublisher) : IAuthService
     {
-        private string GetClientIp() => context.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
         public async Task<LoginResponse> Login(LoginRequest login)
         {
             var user = await userService.GetUserByCredentials(login.Username, login.Password);
@@ -34,7 +32,7 @@ namespace AuthenticationApp.Business.Services
             {
                 user.Username,
                 user.Email,
-                Ip = GetClientIp()
+                Ip = userContext.UserIpAddress
             }));
 
             return loginResponse;
@@ -51,7 +49,7 @@ namespace AuthenticationApp.Business.Services
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(configuration.GetValue<int>("RedisSettings:ExpirationMinutes"))
             };
 
-            var ip = GetClientIp();
+            var ip = userContext.UserIpAddress;
 
             // Set the cache key to retrieve logged user
             var cacheKey = $"refresh:{loginResponse.RefreshToken}";
@@ -118,14 +116,9 @@ namespace AuthenticationApp.Business.Services
 
         public async Task<bool> Logout(RefreshTokenRequest request)
         {
-            var httpContext = context.HttpContext;
-            if(httpContext is null)
-            {
-                return false;
-            }
-            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            var name = userContext.UserName;
 
-            if(string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name))
             {
                 return false;
             }
@@ -133,23 +126,18 @@ namespace AuthenticationApp.Business.Services
             var user = await userService.GetUserByUsername(name);
 
             await cache.RemoveAsync($"refresh:{request.RefreshToken}");
-            await cache.RemoveAsync($"loggedUser:{user.Email}:{GetClientIp()}");
+            await cache.RemoveAsync($"loggedUser:{user.Email}:{userContext.UserIpAddress}");
 
             return true;
         }
 
         public async Task<bool> MassLogout()
         {
-            var httpContext = context.HttpContext;
-            if (httpContext is null)
-            {
-                return false;
-            }
-            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            
+            var name = userContext.UserName;
+
             var user = await userService.GetUserByUsername(name);
 
-            var ip = GetClientIp();
+            var ip = userContext.UserIpAddress;
             if (string.IsNullOrEmpty(name))
             {
                 return false;

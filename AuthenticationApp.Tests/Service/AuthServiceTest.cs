@@ -22,20 +22,20 @@ namespace AuthenticationApp.Tests.Service
     {
         private readonly Mock<IUserService> _userServiceMock;
         private readonly Mock<IConfiguration> _configurationMock;
-        private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
         private readonly Mock<HttpContext> _httpContextMock;
         private readonly Mock<IConnectionMultiplexer> _redisMock;
         private readonly Mock<IDistributedCache> _cacheMock;
         private readonly Mock<IQueuePublisher> _queueMock;
+        private readonly Mock<IUserContextService> _userContextMock = new Mock<IUserContextService>();
         private readonly AuthService _loginService;
         public AuthServiceTest()
         {
             _userServiceMock = new Mock<IUserService>();
             _configurationMock = new Mock<IConfiguration>();
-            _httpContextMock = new Mock<HttpContext>();
             _redisMock = new Mock<IConnectionMultiplexer>();
             _cacheMock = new Mock<IDistributedCache>();
             _queueMock = new Mock<IQueuePublisher>();
+            
 
             var expirationSectionMock = new Mock<IConfigurationSection>();
             expirationSectionMock.Setup(x => x.Value).Returns("60");
@@ -55,18 +55,15 @@ namespace AuthenticationApp.Tests.Service
                 .Returns(redisSectionMock.Object);
 
 
+            _userContextMock = new Mock<IUserContextService>();
 
-            _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-
-            _httpContextAccessorMock.Setup(x => x.HttpContext.Request.Headers["Authorization"])
-                .Returns("Bearer testtoken");
-            _httpContextAccessorMock.Setup(x => x.HttpContext.Connection.RemoteIpAddress)
-                .Returns(IPAddress.Parse("123.45.67.89"));
+            _userContextMock.Setup(x => x.UserIpAddress)
+                .Returns("123.45.67.89");
 
 
             _loginService = new AuthService(_userServiceMock.Object
                 , _configurationMock.Object
-                , _httpContextAccessorMock.Object
+                , _userContextMock.Object
                 , _cacheMock.Object
                 , _redisMock.Object
                 , _queueMock.Object);
@@ -148,7 +145,7 @@ namespace AuthenticationApp.Tests.Service
             var oldToken = userDTO.RefreshToken;
             var result = await _loginService.RefreshToken(refreshTokenRequest);
             var cacheKeyUpdated = $"refresh:{result.RefreshToken}";
-            var cacheKeyUser = $"loggedUser:{userDTO.Email}:{_httpContextAccessorMock.Object.HttpContext.Connection.RemoteIpAddress}";
+            var cacheKeyUser = $"loggedUser:{userDTO.Email}:{_userContextMock.Object.UserIpAddress}";
             //assert,
             Assert.NotNull(result);
             Assert.NotEqual(oldToken, result.RefreshToken);
@@ -176,10 +173,10 @@ namespace AuthenticationApp.Tests.Service
             };
 
             var cacheKey = $"refresh:{request.RefreshToken}";
-            var cacheKeyUser = $"loggedUser:testuser:{_httpContextAccessorMock.Object.HttpContext.Connection.RemoteIpAddress}";
+            var cacheKeyUser = $"loggedUser:testuser:{_userContextMock.Object.UserIpAddress}";
 
-            _httpContextAccessorMock.Setup(x => x.HttpContext.User.FindFirst(ClaimTypes.Name))
-                .Returns(new Claim(ClaimTypes.Name, "testuser"));
+            _userContextMock.Setup(x => x.UserName)
+                .Returns( "testuser");
 
             _userServiceMock.Setup(x => x.GetUserByUsername("testuser"))
               .ReturnsAsync(new UserDTO { Email = "testuser"});
@@ -207,8 +204,8 @@ namespace AuthenticationApp.Tests.Service
             var userDto = new UserDTO { Email = "test@test.com" };
 
             // Mock do HttpContext
-            _httpContextAccessorMock.Setup(x => x.HttpContext.User.FindFirst(ClaimTypes.Name))
-                .Returns(new Claim(ClaimTypes.Name, name));
+            _userContextMock.Setup(x => x.UserName)
+                .Returns(name);
 
             // Mock do UserService
             _userServiceMock
