@@ -1,4 +1,6 @@
-﻿namespace AuthenticationApp.Endpoints
+using AuthenticationApp.Domain.Response;
+
+namespace AuthenticationApp.Endpoints
 {
     public static class WeatherForecastEndpoints
     {
@@ -19,7 +21,7 @@
                         summaries[Random.Shared.Next(summaries.Length)]
                     ))
                     .ToArray();
-                return forecast;
+                return Results.Ok(ApiResponse<WeatherForecast[]>.CreateSuccess(forecast));
             })
             .WithName("GetWeatherForecast")
             .RequireAuthorization()
