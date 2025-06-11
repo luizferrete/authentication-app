@@ -126,6 +126,8 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.UseMiddleware<AuthenticationApp.Middleware.ExceptionHandlingMiddleware>();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
