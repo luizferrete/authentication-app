@@ -22,20 +22,18 @@ namespace AuthenticationApp.Tests.Service
     {
         private readonly Mock<IUserService> _userServiceMock;
         private readonly Mock<IConfiguration> _configurationMock;
-        private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
         private readonly Mock<HttpContext> _httpContextMock;
-        private readonly Mock<IConnectionMultiplexer> _redisMock;
-        private readonly Mock<IDistributedCache> _cacheMock;
+        private readonly Mock<IRedisCacheService> _cacheMock;
         private readonly Mock<IQueuePublisher> _queueMock;
+        private readonly Mock<IUserContextService> _userContextMock = new Mock<IUserContextService>();
         private readonly AuthService _loginService;
         public AuthServiceTest()
         {
             _userServiceMock = new Mock<IUserService>();
             _configurationMock = new Mock<IConfiguration>();
-            _httpContextMock = new Mock<HttpContext>();
-            _redisMock = new Mock<IConnectionMultiplexer>();
-            _cacheMock = new Mock<IDistributedCache>();
+            _cacheMock = new Mock<IRedisCacheService>();
             _queueMock = new Mock<IQueuePublisher>();
+            
 
             var expirationSectionMock = new Mock<IConfigurationSection>();
             expirationSectionMock.Setup(x => x.Value).Returns("60");
@@ -55,20 +53,16 @@ namespace AuthenticationApp.Tests.Service
                 .Returns(redisSectionMock.Object);
 
 
+            _userContextMock = new Mock<IUserContextService>();
 
-            _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-
-            _httpContextAccessorMock.Setup(x => x.HttpContext.Request.Headers["Authorization"])
-                .Returns("Bearer testtoken");
-            _httpContextAccessorMock.Setup(x => x.HttpContext.Connection.RemoteIpAddress)
-                .Returns(IPAddress.Parse("123.45.67.89"));
+            _userContextMock.Setup(x => x.UserIpAddress)
+                .Returns("123.45.67.89");
 
 
             _loginService = new AuthService(_userServiceMock.Object
                 , _configurationMock.Object
-                , _httpContextAccessorMock.Object
+                , _userContextMock.Object
                 , _cacheMock.Object
-                , _redisMock.Object
                 , _queueMock.Object);
         }
 
@@ -119,8 +113,8 @@ namespace AuthenticationApp.Tests.Service
             UserDTO? emptyDto = null;
             var serialized = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emptyDto));
             _cacheMock
-                 .Setup(x => x.GetAsync(cacheKey, It.IsAny<CancellationToken>()))
-                 .ReturnsAsync((byte[])null);
+                 .Setup( x => x.GetAsync(cacheKey))
+                 .ReturnsAsync((string)null);
 
             //Act and Assert
             var message = await Assert.ThrowsAsync<InvalidCredentialException>(() => _loginService.RefreshToken(refreshTokenRequest));
@@ -138,31 +132,29 @@ namespace AuthenticationApp.Tests.Service
                 .ReturnsAsync(userDTO);
 
             var cacheKey = $"refresh:{refreshTokenRequest.RefreshToken}";
-            var serialized = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(userDTO));
+            var serialized = JsonSerializer.Serialize(userDTO);
             _cacheMock
-                 .Setup(x => x.GetAsync(cacheKey, It.IsAny<CancellationToken>()))
-                 .ReturnsAsync(serialized);
+                 .Setup(x => x.GetAsync(cacheKey))
+                 .ReturnsAsync((string)serialized);
 
 
             //act
             var oldToken = userDTO.RefreshToken;
             var result = await _loginService.RefreshToken(refreshTokenRequest);
             var cacheKeyUpdated = $"refresh:{result.RefreshToken}";
-            var cacheKeyUser = $"loggedUser:{userDTO.Email}:{_httpContextAccessorMock.Object.HttpContext.Connection.RemoteIpAddress}";
+            var cacheKeyUser = $"loggedUser:{userDTO.Email}:{_userContextMock.Object.UserIpAddress}";
             //assert,
             Assert.NotNull(result);
             Assert.NotEqual(oldToken, result.RefreshToken);
             _cacheMock.Verify(c => c.SetAsync(
                 cacheKeyUpdated,
-                It.IsAny<byte[]>(),
-                It.IsAny<DistributedCacheEntryOptions>(),
-                It.IsAny<CancellationToken>()),
+                It.IsAny<string>(),
+                It.IsAny<TimeSpan?>()),
               Times.Once);
             _cacheMock.Verify(c => c.SetAsync(
                 cacheKeyUser,
-                It.IsAny<byte[]>(),
-                It.IsAny<DistributedCacheEntryOptions>(),
-                It.IsAny<CancellationToken>()),
+                It.IsAny<string>(),
+                It.IsAny<TimeSpan?>()),
               Times.Once);
         }
 
@@ -176,10 +168,10 @@ namespace AuthenticationApp.Tests.Service
             };
 
             var cacheKey = $"refresh:{request.RefreshToken}";
-            var cacheKeyUser = $"loggedUser:testuser:{_httpContextAccessorMock.Object.HttpContext.Connection.RemoteIpAddress}";
+            var cacheKeyUser = $"loggedUser:testuser:{_userContextMock.Object.UserIpAddress}";
 
-            _httpContextAccessorMock.Setup(x => x.HttpContext.User.FindFirst(ClaimTypes.Name))
-                .Returns(new Claim(ClaimTypes.Name, "testuser"));
+            _userContextMock.Setup(x => x.UserName)
+                .Returns( "testuser");
 
             _userServiceMock.Setup(x => x.GetUserByUsername("testuser"))
               .ReturnsAsync(new UserDTO { Email = "testuser"});
@@ -190,72 +182,45 @@ namespace AuthenticationApp.Tests.Service
             //assert
             Assert.True(result);
             _cacheMock.Verify(c => c.RemoveAsync(
-               cacheKey,
-               It.IsAny<CancellationToken>()),
+               cacheKey),
              Times.Once);
             _cacheMock.Verify(c => c.RemoveAsync(
-               cacheKeyUser,
-               It.IsAny<CancellationToken>()),
+               cacheKeyUser),
              Times.Once);
         }
 
         [Fact]
-        public async Task MassLogout_WhenUserLoggedIn_ShouldDislogEveryDevice()
+        public async Task MassLogout_WhenUserLoggedIn_ShouldInvokeCacheServiceMassLogout()
         {
             // Arrange
-            var name = "testuser";
-            var userDto = new UserDTO { Email = "test@test.com" };
+            var username = "testuser";
+            var email = "test@test.com";
+            var ip = "123.45.67.89";
+            var userDto = new UserDTO { Email = email };
 
-            // Mock do HttpContext
-            _httpContextAccessorMock.Setup(x => x.HttpContext.User.FindFirst(ClaimTypes.Name))
-                .Returns(new Claim(ClaimTypes.Name, name));
+            _userContextMock
+                .Setup(x => x.UserName)
+                .Returns(username);
 
-            // Mock do UserService
             _userServiceMock
-                .Setup(x => x.GetUserByUsername(name))
+                .Setup(x => x.GetUserByUsername(username))
                 .ReturnsAsync(userDto);
 
-            // Mock do Redis
-            var endpoint = new DnsEndPoint("localhost", 6379);
-            _redisMock
-                .Setup(r => r.GetEndPoints(false))
-                .Returns(new EndPoint[] { endpoint });
-
-            var serverMock = new Mock<IServer>();
-            _redisMock
-                .Setup(r => r.GetServer(endpoint, null))
-                .Returns(serverMock.Object);
-
-            // Chave completa que o server.Keys vai retornar
-            var fullKey = $"AuthenticationApp:loggedUser:{userDto.Email}:myRefreshToken";
-            serverMock
-                .Setup(s => s.Keys(
-                    It.IsAny<int>(),
-                    It.Is<RedisValue>(v => v == $"AuthenticationApp:loggedUser:{userDto.Email}:*"),
-                    It.IsAny<int>(),
-                    It.IsAny<long>(),
-                    It.IsAny<int>(),
-                    It.IsAny<CommandFlags>()))
-                .Returns(new[] { (RedisKey)fullKey });
-
-            // Mock do cache para retornar o "refresh token" salvo
-            var completeKey = fullKey.Substring("AuthenticationApp:".Length);
-            var refreshToken = "myRefreshToken";
+            // Prepara o mock para não lançar exceção
             _cacheMock
-                .Setup(c => c.GetAsync(completeKey, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Encoding.UTF8.GetBytes(refreshToken));
+                .Setup(c => c.MassLogoutAsync(email, ip))
+                .Returns(Task.CompletedTask);
 
             // Act
             var result = await _loginService.MassLogout();
 
             // Assert
             Assert.True(result);
-            // Verifica que buscamos a chave exata
-            _cacheMock.Verify(c => c.GetAsync(completeKey, It.IsAny<CancellationToken>()), Times.Once);
-            // Verifica que removemos o refresh token armazenado
-            _cacheMock.Verify(c => c.RemoveAsync($"refresh:{refreshToken}", It.IsAny<CancellationToken>()), Times.Once);
-            // Verifica que removemos também a chave de usuário logado
-            _cacheMock.Verify(c => c.RemoveAsync(completeKey, It.IsAny<CancellationToken>()), Times.Once);
+            _cacheMock.Verify(
+                c => c.MassLogoutAsync(email, ip),
+                Times.Once,
+                "Deve chamar exatamente uma vez o método MassLogoutAsync do cache"
+            );
         }
 
     }

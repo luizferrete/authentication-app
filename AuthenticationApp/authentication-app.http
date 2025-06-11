@@ -1,5 +1,5 @@
 @authentication_app_HostAddress = https://localhost:44383
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InRlc3QiLCJlbWFpbCI6ImwuYS5mZXJyZXRlQGdtYWlsLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0Njc1ODE4NiwiZXhwIjoxNzQ2NzU5MDg2LCJpYXQiOjE3NDY3NTgxODYsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjQ0MzgzIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzODMifQ.jUbpmy3drHpPuNfR_H7oUXs_TyzLGDOsxxYdbpYkIn4
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1bmlxdWVfbmFtZSI6InRlc3QiLCJlbWFpbCI6ImwuYS5mZXJyZXRlQGdtYWlsLmNvbSIsInJvbGUiOiJBZG1pbiIsIm5iZiI6MTc0OTUxMzIwMiwiZXhwIjoxNzQ5NTE0MTAyLCJpYXQiOjE3NDk1MTMyMDIsImlzcyI6Imh0dHBzOi8vbG9jYWxob3N0OjQ0MzgzIiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzODMifQ.kzs0YDO2rqlssF2-HYe9Z0XN1PUHhWr4-mV7TImKdNk
 
 POST {{authentication_app_HostAddress}}/user/
 Content-Type: application/json
@@ -39,7 +39,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "refreshToken": "d60267d2-102e-447f-b54b-dccd3191ee87"
+  "refreshToken": "6f2e6618-39c7-45ea-8114-de140c0715be"
 }
 
 ###

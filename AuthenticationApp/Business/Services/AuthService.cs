@@ -16,13 +16,10 @@ namespace AuthenticationApp.Business.Services
 {
     public class AuthService(IUserService userService
         , IConfiguration configuration
-        , IHttpContextAccessor context
-        , IDistributedCache cache
-        , IConnectionMultiplexer redis
+        , IUserContextService userContext
+        , IRedisCacheService cache
         , IQueuePublisher queuePublisher) : IAuthService
     {
-        private string GetClientIp() => context.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
         public async Task<LoginResponse> Login(LoginRequest login)
         {
             var user = await userService.GetUserByCredentials(login.Username, login.Password);
@@ -34,7 +31,7 @@ namespace AuthenticationApp.Business.Services
             {
                 user.Username,
                 user.Email,
-                Ip = GetClientIp()
+                Ip = userContext.UserIpAddress
             }));
 
             return loginResponse;
@@ -46,20 +43,15 @@ namespace AuthenticationApp.Business.Services
 
             user.RefreshToken = loginResponse.RefreshToken;
 
-            var cacheOptions = new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(configuration.GetValue<int>("RedisSettings:ExpirationMinutes"))
-            };
-
-            var ip = GetClientIp();
+            var ip = userContext.UserIpAddress;
 
             // Set the cache key to retrieve logged user
             var cacheKey = $"refresh:{loginResponse.RefreshToken}";
-            await cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(user), cacheOptions);
+            await cache.SetAsync(cacheKey, JsonSerializer.Serialize(user));
 
             // Set the cache key to indicate the user is logged in
             var cacheKeyUser = $"loggedUser:{user.Email}:{ip}";
-            await cache.SetStringAsync(cacheKeyUser, loginResponse.RefreshToken, cacheOptions);
+            await cache.SetAsync(cacheKeyUser, loginResponse.RefreshToken);
         }
 
         private string GenerateToken(UserDTO user)
@@ -96,7 +88,7 @@ namespace AuthenticationApp.Business.Services
         {
             var cacheKey = $"refresh:{request.RefreshToken}";
 
-            var userJson = await cache.GetStringAsync(cacheKey) 
+            var userJson = await cache.GetAsync(cacheKey) 
                 ?? throw new InvalidCredentialException("Refresh token inválido.");
             
             var user = JsonSerializer.Deserialize<UserDTO>(userJson);
@@ -118,14 +110,9 @@ namespace AuthenticationApp.Business.Services
 
         public async Task<bool> Logout(RefreshTokenRequest request)
         {
-            var httpContext = context.HttpContext;
-            if(httpContext is null)
-            {
-                return false;
-            }
-            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
+            var name = userContext.UserName;
 
-            if(string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name))
             {
                 return false;
             }
@@ -133,38 +120,20 @@ namespace AuthenticationApp.Business.Services
             var user = await userService.GetUserByUsername(name);
 
             await cache.RemoveAsync($"refresh:{request.RefreshToken}");
-            await cache.RemoveAsync($"loggedUser:{user.Email}:{GetClientIp()}");
+            await cache.RemoveAsync($"loggedUser:{user.Email}:{userContext.UserIpAddress}");
 
             return true;
         }
 
         public async Task<bool> MassLogout()
         {
-            var httpContext = context.HttpContext;
-            if (httpContext is null)
-            {
-                return false;
-            }
-            var name = httpContext.User.FindFirst(ClaimTypes.Name)?.Value;
-            
+            var name = userContext.UserName;
+
             var user = await userService.GetUserByUsername(name);
 
-            var ip = GetClientIp();
-            if (string.IsNullOrEmpty(name))
-            {
-                return false;
-            }
-            var instanceName = "AuthenticationApp:";
-            var cacheKey = $"{instanceName}loggedUser:{user.Email}:*";
-            var server = redis.GetServer(redis.GetEndPoints().First());
-
-            foreach (var key in server.Keys(pattern: cacheKey))
-            {
-                var completeKey = key.ToString().Substring(instanceName.Length);
-                var refreshToken = await cache.GetStringAsync(completeKey);
-                await cache.RemoveAsync($"refresh:{refreshToken}");
-                await cache.RemoveAsync(completeKey);
-            }
+            var ip = userContext.UserIpAddress;
+            
+            await cache.MassLogoutAsync(user.Email, ip);
 
             return true;
         }
