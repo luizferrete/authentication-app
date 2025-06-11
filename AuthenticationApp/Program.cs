@@ -60,7 +60,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     var redisSettings = builder.Configuration.GetSection(nameof(RedisSettings)).Get<RedisSettings>();
     options.Configuration = redisSettings.ConnectionString;
     options.InstanceName = redisSettings.InstanceName;
-});
+}).AddSingleton<IRedisCacheService, RedisCacheService>();
 
 builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 {
