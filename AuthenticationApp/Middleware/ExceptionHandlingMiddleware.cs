@@ -1,3 +1,4 @@
+using System.Security.Authentication;
 using System.Text.Json;
 using AuthenticationApp.Domain.Exceptions;
 using AuthenticationApp.Domain.Response;
@@ -41,8 +42,12 @@ namespace AuthenticationApp.Middleware
                     context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     apiResponse = ApiResponse<object>.CreateFailure(exception.Message, ve.ValidationErrors);
                     break;
+                case InvalidCredentialException ics:
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    apiResponse = ApiResponse<object>.CreateFailure(ics.Message);
+                    break;
                 default:
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
                     apiResponse = ApiResponse<object>.CreateFailure("Ocorreu um erro inesperado.", new[] { exception.Message });
                     break;
             }
