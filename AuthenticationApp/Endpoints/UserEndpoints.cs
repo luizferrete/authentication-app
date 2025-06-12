@@ -1,8 +1,11 @@
 ﻿using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
+using AuthenticationApp.Domain.Response;
+using AuthenticationApp.Domain.Exceptions;
+using AppValidationException = AuthenticationApp.Domain.Exceptions.ValidationException;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Authentication;
+using System.Linq;
 
 namespace AuthenticationApp.Endpoints
 {
@@ -16,48 +19,32 @@ namespace AuthenticationApp.Endpoints
 
             userRoutes.MapPost("/", async ([FromBody] CreateUserRequest user, IUserService userService, IValidator<CreateUserRequest> validator) =>
             {
-                try
-                {
-                    var validationResult = await validator.ValidateAsync(user);
+                var validationResult = await validator.ValidateAsync(user);
 
-                    if (!validationResult.IsValid)
-                    {
-                        return Results.ValidationProblem(validationResult.ToDictionary());
-                    }
-
-                    await userService.CreateUser(user);
-                    return Results.Created();
-                } 
-                catch(Exception e)
+                if (!validationResult.IsValid)
                 {
-                    return Results.BadRequest(e.Message);
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    throw new AppValidationException(errors);
                 }
+
+                await userService.CreateUser(user);
+                return Results.Created("/user", ApiResponse<object>.CreateSuccess(null!, "Usuário criado com sucesso"));
             })
             .WithName("CreateUser")
             .WithDescription("Creates a new user.");
 
             userRoutes.MapPost("/changepassword", async ([FromBody] ChangePasswordRequest changePassword, IUserService userService, IValidator<ChangePasswordRequest> validator) =>
             {
-                try
-                {
-                    var validationResult = await validator.ValidateAsync(changePassword);
+                var validationResult = await validator.ValidateAsync(changePassword);
 
-                    if (!validationResult.IsValid)
-                    {
-                        return Results.ValidationProblem(validationResult.ToDictionary());
-                    }
+                if (!validationResult.IsValid)
+                {
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    throw new AppValidationException(errors);
+                }
 
-                    await userService.ChangePassword(changePassword);
-                    return Results.Ok();
-                }
-                catch (InvalidOperationException e)
-                {
-                    return Results.BadRequest(e.Message);
-                }
-                catch (InvalidCredentialException)
-                {
-                    return Results.Unauthorized();
-                }
+                await userService.ChangePassword(changePassword);
+                return Results.Ok(ApiResponse<object>.CreateSuccess(null!, "Senha alterada com sucesso"));
             })
             .RequireAuthorization()
             .WithName("ChangePassword")

@@ -1,8 +1,11 @@
 ﻿using AuthenticationApp.Domain.Request;
 using AuthenticationApp.Interfaces.Business;
+using AuthenticationApp.Domain.Response;
+using AuthenticationApp.Domain.Exceptions;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Authentication;
+using System.Linq;
+using AppValidationException = AuthenticationApp.Domain.Exceptions.ValidationException;
 
 namespace AuthenticationApp.Endpoints
 {
@@ -16,23 +19,17 @@ namespace AuthenticationApp.Endpoints
 
             authRoutes.MapPost("/login", async ([FromBody] LoginRequest login, IAuthService loginService, IValidator<LoginRequest> validator) =>
             {
-                try
+                var validationResult = await validator.ValidateAsync(login);
+
+                if (!validationResult.IsValid)
                 {
-                    var validationResult = await validator.ValidateAsync(login);
-
-                    if (!validationResult.IsValid)
-                    {
-                        return Results.ValidationProblem(validationResult.ToDictionary());
-                    }
-
-                    var response = await loginService.Login(login);
-
-                    return Results.Ok(response);
+                    var errors = validationResult.Errors.Select(e => e.ErrorMessage);
+                    throw new AppValidationException(errors);
                 }
-                catch (InvalidCredentialException)
-                {
-                    return Results.Unauthorized();
-                }
+
+                var response = await loginService.Login(login);
+
+                return Results.Ok(ApiResponse<LoginResponse>.CreateSuccess(response, "Login realizado com sucesso"));
 
             })
             .WithName("LoginUser")
@@ -40,23 +37,17 @@ namespace AuthenticationApp.Endpoints
 
             authRoutes.MapPost("/refresh", async ([FromBody] RefreshTokenRequest request, IAuthService loginService, IValidator<RefreshTokenRequest> validator) =>
             {
-                try
+                var validationRequest = await validator.ValidateAsync(request);
+
+                if (!validationRequest.IsValid)
                 {
-                    var validationRequest = await validator.ValidateAsync(request);
-
-                    if (!validationRequest.IsValid)
-                    {
-                        return Results.ValidationProblem(validationRequest.ToDictionary());
-                    }
-
-                    var response = await loginService.RefreshToken(request);
-
-                    return Results.Ok(response);
+                    var errors = validationRequest.Errors.Select(e => e.ErrorMessage);
+                    throw new AppValidationException(errors);
                 }
-                catch (InvalidCredentialException)
-                {
-                    return Results.Unauthorized();
-                }
+
+                var response = await loginService.RefreshToken(request);
+
+                return Results.Ok(ApiResponse<LoginResponse>.CreateSuccess(response, "Token atualizado"));
 
             })
             .WithName("Refresh")
@@ -64,16 +55,11 @@ namespace AuthenticationApp.Endpoints
 
             authRoutes.MapPost("/logout", async ([FromBody] RefreshTokenRequest request, IAuthService loginService) =>
             {
-                try
-                {
-                    var result = await loginService.Logout(request);
+                var result = await loginService.Logout(request);
 
-                    return result ? Results.Ok() : Results.NotFound();
-                }
-                catch (Exception e)
-                {
-                    return Results.BadRequest(e);
-                }
+                return result
+                    ? Results.Ok(ApiResponse<object>.CreateSuccess(null!, "Logout realizado"))
+                    : Results.NotFound(ApiResponse<object>.CreateFailure("Recurso não encontrado"));
 
             })
            .RequireAuthorization()
@@ -82,16 +68,11 @@ namespace AuthenticationApp.Endpoints
 
             authRoutes.MapPost("/masslogout", async (IAuthService loginService) =>
             {
-                try
-                {
-                    var result = await loginService.MassLogout();
+                var result = await loginService.MassLogout();
 
-                    return result ? Results.Ok() : Results.NotFound();
-                }
-                catch (Exception e)
-                {
-                    return Results.BadRequest(e);
-                }
+                return result
+                    ? Results.Ok(ApiResponse<object>.CreateSuccess(null!, "Logout em massa realizado"))
+                    : Results.NotFound(ApiResponse<object>.CreateFailure("Recurso não encontrado"));
 
             })
            .RequireAuthorization()
