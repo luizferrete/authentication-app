@@ -24,6 +24,18 @@ namespace AuthenticationApp.Infra
             _channel = _connection.CreateModel();
 
             _channel.ExchangeDeclare(exchange: _exchangeName, type: ExchangeType.Topic, durable: true);
+
+            _channel.QueueDeclare(
+               queue: "email_queue",
+               durable: true,
+               exclusive: false,
+               autoDelete: false,
+               arguments: null);
+
+            _channel.QueueBind(
+               queue: "email_queue",
+               exchange: _exchangeName,
+               routingKey: "Email.Login");
         }
 
 

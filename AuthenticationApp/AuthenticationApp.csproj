@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>AuthenticationApp</RootNamespace>
+    <UserSecretsId>c419126f-9ce8-411a-9d87-f59a60c87064</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -33,7 +33,7 @@ namespace AuthenticationApp.Tests.Middleware
             var response = await client.GetAsync("/");
             var content = await response.Content.ReadAsStringAsync();
 
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             var api = JsonSerializer.Deserialize<ApiResponse<object>>(content);
             Assert.False(api!.Success);
             Assert.Contains("boom", api.Errors!.First());
