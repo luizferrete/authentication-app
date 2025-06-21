@@ -23,8 +23,8 @@ services:
       - ASPNETCORE_URLS=http://+:44383
       
        # MongoDB Atlas
-      - MongoDB__ConnectionString=mongodb+srv://luizferrete:s2QDPiM29NW8A3cD@cluster0.kvrg6ix.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
-      - MongoDB__Database=Cluster0
+      - MongoDB__ConnectionString=${MONGODB__CONNECTIONSTRING} # ensure this is set in your .env file
+      - MongoDB__Database=${MONGODB__DATABASE}
 
       # Redis
       - RedisSettings__Configuration=redis:6379
@@ -90,10 +90,10 @@ services:
       - AzureWebJobsStorage=UseDevelopmentStorage=true
       - FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
       - rabbitConnection=amqp://guest:guest@rabbitmq:5672
-      - MailTrap__user=daaf35dd2d98f8
-      - MailTrap__host=sandbox.smtp.mailtrap.io
-      - MailTrap__port=2525
-      - MailTrap__password=bb966dc4022e3b
+      - MailTrap__user=${MAILTRAP__USER} # ensure this is set in your .env file
+      - MailTrap__host=${MAILTRAP__HOST} # ensure this is set in your .env file
+      - MailTrap__port=${MAILTRAP__PORT} # ensure this is set in your .env file
+      - MailTrap__password=${MAILTRAP__PASSWORD} # ensure this is set in your .env file
     depends_on:
         rabbitmq:
           condition: service_healthy
