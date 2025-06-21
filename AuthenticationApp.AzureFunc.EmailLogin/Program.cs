@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-
 builder.Configuration.AddUserSecrets<Program>(optional: true);
 
 

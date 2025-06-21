@@ -24,6 +24,7 @@ public class EmailFunctions
     public void Run([RabbitMQTrigger("email_queue", ConnectionStringSetting = "rabbitConnection")] string myQueueItem)
     {
         _logger.LogInformation("C# Queue trigger function processed: {item}", myQueueItem);
+        Console.WriteLine("Queue trigger function processed: " + myQueueItem);
 
         var loginObj = JsonSerializer.Deserialize<LoginRequest>(myQueueItem);
 
