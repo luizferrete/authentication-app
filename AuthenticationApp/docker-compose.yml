@@ -1,0 +1,101 @@
+
+services:
+
+  # mongodb:
+  #   image: mongo:6.0
+  #   container_name: mongodb
+  #   ports:
+  #     - "27017:27017"
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "mongosh --quiet --eval \"db.runCommand({ ping: 1 })\""]
+  #     interval: 10s
+  #     retries: 5   
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: authenticationapp:latest
+    ports:
+      - "44383:44383"
+    environment:
+      # ASP.NET Core URL binding
+      - ASPNETCORE_URLS=http://+:44383
+      
+       # MongoDB Atlas
+      - MongoDB__ConnectionString=mongodb+srv://luizferrete:s2QDPiM29NW8A3cD@cluster0.kvrg6ix.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - MongoDB__Database=Cluster0
+
+      # Redis
+      - RedisSettings__Configuration=redis:6379
+      - "RedisSettings__InstanceName=AuthenticationApp:"
+      - RedisSettings__ExpirationMinutes=600
+      - RedisSettings__ConnectionString=redis:6379,abortConnect=false
+
+      # RabbitMQ
+      - RabbitMQSettings__Host=rabbitmq
+      - RabbitMQSettings__Port=5672
+      - RabbitMQSettings__Username=guest
+      - RabbitMQSettings__Password=guest
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # mongodb:
+      #   condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "status"]
+      interval: 30s
+      retries: 5
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      retries: 5
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    command: ["azurite-blob", "--blobHost", "0.0.0.0"]
+    healthcheck:
+        test: ["CMD-SHELL", "nc -z 127.0.0.1 10000 || exit 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 5s
+
+  emailfunc:
+    build:
+      context: ../AuthenticationApp.AzureFunc.EmailLogin
+      dockerfile: Dockerfile
+    image: authenticationapp-emailfunc:latest
+    environment:
+      - AzureWebJobsStorage=UseDevelopmentStorage=true
+      - FUNCTIONS_WORKER_RUNTIME=dotnet-isolated
+      - rabbitConnection=amqp://guest:guest@rabbitmq:5672
+      - MailTrap__user=daaf35dd2d98f8
+      - MailTrap__host=sandbox.smtp.mailtrap.io
+      - MailTrap__port=2525
+      - MailTrap__password=bb966dc4022e3b
+    depends_on:
+        rabbitmq:
+          condition: service_healthy
+        azurite:
+          condition: service_healthy

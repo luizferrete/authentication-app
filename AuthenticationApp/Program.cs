@@ -31,6 +31,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<RefreshTokenRequestValidato
 
 builder.Services.Configure<MongoDBSettings>(builder.Configuration.GetSection(nameof(MongoDB)));
 builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection(nameof(RedisSettings)));
+builder.Services.Configure<RabbitMQSettings>(
+    builder.Configuration.GetSection("RabbitMQSettings"));
+
+builder.Services.AddHostedService<QueueInitializer>();
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {

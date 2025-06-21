@@ -30,6 +30,7 @@ namespace AuthenticationApp.Middleware
 
         private Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
+            _logger.LogError(exception, "Unhandled exception in pipeline");
             context.Response.ContentType = "application/json";
             ApiResponse<object> apiResponse;
             switch (exception)
