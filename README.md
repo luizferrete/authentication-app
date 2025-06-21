@@ -1,8 +1,8 @@
-# AuthenticationApp
+# 🔒 AuthenticationApp
 
-AuthenticationApp is a .NET 8-based application designed to provide user authentication and authorization services. It leverages modern technologies such as MongoDB, JWT, and ASP.NET Core Minimal APIs to deliver a secure and scalable solution.
+AuthenticationApp is a .NET 8-based application designed to provide user authentication and authorization services. It leverages modern technologies such as MongoDB, JWT, RabbitMQ, Azure Functions and ASP.NET Core Minimal APIs to deliver a secure and scalable solution.
 
-## Features
+## 🟢 Features
 - User registration and authentication.
 - JWT-based authentication and authorization.
 - Refresh token support for session management.
@@ -17,11 +17,10 @@ AuthenticationApp is a .NET 8-based application designed to provide user authent
 - Email notifications via Azure Functions.
 - Dockerized environment with `docker-compose`.
 
-## Libraries Used
+## 🟢 Libraries Used
 The solution uses the following libraries:
 
 ### Main Application (`AuthenticationApp.csproj`)
-- **[BCrypt.Net-Next](https://www.nuget.org/packages/BCrypt.Net-Next)** (v4.0.3): For secure password hashing.
 - **[Microsoft.AspNetCore.Authentication.JwtBearer](https://www.nuget.org/packages/Microsoft.AspNetCore.Authentication.JwtBearer)** (v8.0.14): For JWT-based authentication.
 - **[Microsoft.AspNetCore.OpenApi](https://www.nuget.org/packages/Microsoft.AspNetCore.OpenApi)** (v8.0.13): For OpenAPI/Swagger integration.
 - **[MongoDB.Driver](https://www.nuget.org/packages/MongoDB.Driver)** (v3.3.0): For MongoDB database access.
@@ -38,7 +37,7 @@ The solution uses the following libraries:
 - **[xUnit](https://www.nuget.org/packages/xunit)** (v2.5.3): For unit testing.
 - **[xUnit.runner.visualstudio](https://www.nuget.org/packages/xunit.runner.visualstudio)** (v2.5.3): For running xUnit tests in Visual Studio.
 
-## Main Points of the Solution
+## 🟢 Main Points of the Solution
 
 ### Architecture
 - **Repositories**: Handles data access logic (e.g., `UserRepository` for user-related operations).
@@ -67,12 +66,12 @@ The solution uses the following libraries:
 - Code coverage is collected using Coverlet.
 
 
-## Getting Started
+## 🟢 Getting Started
 1. Clone the repository.
 2. Configure the `appsettings.json` file with your MongoDB connection string and JWT settings. Use `dotnet user-secrets` (the `secrets.json` file) to store the connection string and JWT private key locally.
 3. Build and run the solution using Visual Studio 2022 or the .NET CLI.
 4. Alternatively, create an `.env` file and execute `docker compose up` inside the `AuthenticationApp` folder to start the API, Redis, RabbitMQ and the Azure Function.
 5. Access the Scalar UI at `https://localhost:<port>/scalar`.
 
-## License
+## 🟢 License
 This project is licensed under the MIT License.
