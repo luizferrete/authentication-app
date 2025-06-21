@@ -60,6 +60,7 @@ The function will send an email to `user@example.com` about the login event.
 1. Set up your `secrets.json` with the RabbitMQ connection string.
 2. Add your MailTrap (or SMTP) credentials to User Secrets or environment variables.
 3. Run the function app using Visual Studio or the .NET CLI.
+4. To use Docker, build the image with `docker build -t authenticationapp-emailfunc .` and run it or start everything with the main project's `docker-compose.yml`.
 
 ## License
 
