@@ -38,6 +38,9 @@ services:
       - RabbitMQSettings__Username=guest
       - RabbitMQSettings__Password=guest
 
+      # JWT Token Settings
+      - JWTToken__PrivateKey=${JWT_TOKEN_PRIVATEKEY}
+
     depends_on:
       rabbitmq:
         condition: service_healthy
